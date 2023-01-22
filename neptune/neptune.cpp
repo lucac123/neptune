@@ -8,6 +8,9 @@ void processInput(GLFWwindow* window);
 const unsigned int WIDTH = 1920;
 const unsigned int HEIGHT = 1080;
 
+const unsigned int GRID_HEIGHT = 1920;
+const unsigned int GRID_WIDTH = 1080;
+
 int main() {
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -30,7 +33,11 @@ int main() {
 		return -1;
 	}
 
-	Shader sim_shader("square.vert", "rtt.frag");
+	Shader rtt_shader("square.vert", "rtt.frag");
+	Shader sim_shader("square.vert", "sim.frag");
+
+	sim_shader.use();
+	glUniform1i(glGetUniformLocation(sim_shader.getID(), "rtt_texture"), 0);
 
 	float vertices[] = {
 		// position		texture
@@ -77,17 +84,47 @@ int main() {
 	glGenFramebuffers(1, &rtt_buffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, rtt_buffer);
 
+	unsigned int rtt_texture;
+	glGenTextures(1, &rtt_texture);
+	
+	glBindTexture(GL_TEXTURE_2D, rtt_texture);
 
-	sim_shader.use();
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, GRID_WIDTH, GRID_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, rtt_texture, 0);
+
+	unsigned int draw_buffers[1] = {GL_COLOR_ATTACHMENT0};
+	glDrawBuffers(1, draw_buffers);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "L framebuffer creator" << std::endl;
+		return false;
+	}
+
 	glBindVertexArray(VAO);
 
+	glClearColor(1,1,1,1);
 	while (!glfwWindowShouldClose(window)) {
 		processInput(window);
 
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+		
+		glBindFramebuffer(GL_FRAMEBUFFER, rtt_buffer);
 		glClear(GL_COLOR_BUFFER_BIT);
+		//glViewport(0, 0, GRID_WIDTH, GRID_HEIGHT);
 
+		rtt_shader.use();
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glClear(GL_COLOR_BUFFER_BIT);
+		sim_shader.use();
+		glBindTexture(GL_TEXTURE_2D, rtt_texture);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -96,6 +133,8 @@ int main() {
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &EBO);
+
+	glDeleteFramebuffers(1, &rtt_buffer);
 
 	glfwTerminate();
 	return 0;
