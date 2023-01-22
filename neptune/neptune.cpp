@@ -4,12 +4,15 @@
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 
 const unsigned int WIDTH = 1920;
 const unsigned int HEIGHT = 1080;
 
 const unsigned int GRID_HEIGHT = 1920;
 const unsigned int GRID_WIDTH = 1080;
+
+bool mouse_press = false;
 
 int main() {
 	glfwInit();
@@ -26,6 +29,10 @@ int main() {
 	}
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
+
+	GLFWcursor* cursor = glfwCreateStandardCursor(GLFW_CROSSHAIR_CURSOR);
+	glfwSetCursor(window, cursor);
 
 	// Initialize glad
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -133,7 +140,17 @@ int main() {
 
 
 		sim_shader.use();
-		glUniform1f(glGetUniformLocation(sim_shader.getID(), "delta_time"), current_frame);
+
+		if (mouse_press) {
+			double x, y;
+			glfwGetCursorPos(window, &x, &y);
+			glUniform2f(glGetUniformLocation(sim_shader.getID(), "cursor_pos"), (float)x/WIDTH, (float)(1-y/HEIGHT));
+		}
+		else {
+			glUniform2f(glGetUniformLocation(sim_shader.getID(), "cursor_pos"), (float)0, (float)0);
+		}
+
+		glUniform1f(glGetUniformLocation(sim_shader.getID(), "delta_time"), delta_time);
 		glBindTexture(GL_TEXTURE_2D, rendered_texture);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
@@ -160,4 +177,13 @@ void processInput(GLFWwindow* window) {
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+	if (button == GLFW_MOUSE_BUTTON_LEFT) {
+		if (action == GLFW_PRESS)
+			mouse_press = true;
+		else if (action == GLFW_RELEASE)
+			mouse_press = false;
+	}
 }
