@@ -41,10 +41,10 @@ int main() {
 
 	float vertices[] = {
 		// position		texture
-		 1,	 1,	 0,		1,	1,
-		 1,	-1,	 0,		1,	0,
-		-1,	-1,	 0,		0,	0,
-		-1,	 1,	 0,		0,	1
+		 1,	 1,			1,	1,
+		 1,	-1,			1,	0,
+		-1,	-1,			0,	0,
+		-1,	 1,			0,	1
 	};
 	unsigned int indices[] = {
 		0, 1, 3,
@@ -65,36 +65,35 @@ int main() {
 	glBindVertexArray(VAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), &indices, GL_STATIC_DRAW);
 
 	// Define data in vertex buffer object
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
 
 	// texture attribute
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2*sizeof(float)));
 
 
 	/* RENDER TO TARGET */
-	unsigned int rtt_buffer;
-	glGenFramebuffers(1, &rtt_buffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, rtt_buffer);
+	unsigned int rtt_fbo;
+	glGenFramebuffers(1, &rtt_fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, rtt_fbo);
 
-	unsigned int rtt_texture;
-	glGenTextures(1, &rtt_texture);
+	unsigned int rendered_texture;
+	glGenTextures(1, &rendered_texture);
 	
-	glBindTexture(GL_TEXTURE_2D, rtt_texture);
-
+	glBindTexture(GL_TEXTURE_2D, rendered_texture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, GRID_WIDTH, GRID_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glBindTexture(GL_TEXTURE_2D, 0);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, rtt_texture, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, rendered_texture, 0);
 
 	unsigned int draw_buffers[1] = {GL_COLOR_ATTACHMENT0};
 	glDrawBuffers(1, draw_buffers);
@@ -111,18 +110,20 @@ int main() {
 		processInput(window);
 
 		
-		glBindFramebuffer(GL_FRAMEBUFFER, rtt_buffer);
-		glClear(GL_COLOR_BUFFER_BIT);
-		//glViewport(0, 0, GRID_WIDTH, GRID_HEIGHT);
+		glBindFramebuffer(GL_FRAMEBUFFER, rtt_fbo);
+		//glClear(GL_COLOR_BUFFER_BIT);
+		glViewport(0, 0, GRID_WIDTH, GRID_HEIGHT);
 
 		rtt_shader.use();
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glViewport(0, 0, WIDTH, HEIGHT);
+		//glClearColor(0, 0, 0, 1);
+		//glClear(GL_COLOR_BUFFER_BIT);
 		sim_shader.use();
-		glBindTexture(GL_TEXTURE_2D, rtt_texture);
+		glBindTexture(GL_TEXTURE_2D, rendered_texture);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 
@@ -134,7 +135,7 @@ int main() {
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &EBO);
 
-	glDeleteFramebuffers(1, &rtt_buffer);
+	glDeleteFramebuffers(1, &rtt_fbo);
 
 	glfwTerminate();
 	return 0;
