@@ -106,13 +106,22 @@ int main() {
 	glBindVertexArray(VAO);
 
 	glClearColor(1,1,1,1);
+	
+	float last_frame = static_cast<float>(glfwGetTime());
+	float delta_time = 0;
 	while (!glfwWindowShouldClose(window)) {
+		float current_frame = static_cast<float>(glfwGetTime());
+		delta_time = current_frame - last_frame;
+		last_frame = current_frame;
+
+
 		processInput(window);
 
 		
 		glBindFramebuffer(GL_FRAMEBUFFER, rtt_fbo);
-		//glClear(GL_COLOR_BUFFER_BIT);
+
 		glViewport(0, 0, GRID_WIDTH, GRID_HEIGHT);
+		glClear(GL_COLOR_BUFFER_BIT);
 
 		rtt_shader.use();
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -120,9 +129,11 @@ int main() {
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glViewport(0, 0, WIDTH, HEIGHT);
-		//glClearColor(0, 0, 0, 1);
-		//glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+
 		sim_shader.use();
+		glUniform1f(glGetUniformLocation(sim_shader.getID(), "delta_time"), current_frame);
 		glBindTexture(GL_TEXTURE_2D, rendered_texture);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
