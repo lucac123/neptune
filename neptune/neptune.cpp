@@ -2,17 +2,31 @@
 #include <GLFW/glfw3.h>
 #include "Shader.h"
 
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 
+const unsigned int RENDER_FRAMEBUFFER = 0;
+
 const unsigned int WIDTH = 1920;
 const unsigned int HEIGHT = 1080;
 
-const unsigned int GRID_HEIGHT = 1920;
-const unsigned int GRID_WIDTH = 1080;
+const unsigned int GRID_WIDTH = 1920;
+const unsigned int GRID_HEIGHT = 1080;
+
+const unsigned int GRID_NUM_X = 1920;
+const unsigned int GRID_NUM_Y = 1080;
 
 bool mouse_press = false;
+
+void configure_texture(); // utility function to avoid duplicated code. Do not call at the wrong time.
+
+// FLUID PROPERTIES
+const float diffusion_const = 1;
+const float dissipation_rate = 1;
+const float viscosity = 1;
+const float splat_radius = 50;
 
 int main() {
 	glfwInit();
@@ -40,11 +54,40 @@ int main() {
 		return -1;
 	}
 
-	Shader rtt_shader("square.vert", "rtt.frag");
-	Shader sim_shader("square.vert", "sim.frag");
+	Shader add_force("square.vert", "add_force.frag");
+	Shader advect("square.vert", "advect.frag");
+	Shader diffuse("square.vert", "diffuse.frag");
+	Shader project("square.vert", "project.frag");
 
-	sim_shader.use();
-	glUniform1i(glGetUniformLocation(sim_shader.getID(), "rtt_texture"), 0);
+	Shader add_source("square.vert", "add_source.frag");
+	Shader dissipate("square.vert", "dissipate.frag");
+
+	Shader render("square.vert", "render.frag");
+
+	
+	add_force.use();
+	glUniform1i(glGetUniformLocation(add_force.getID(), "u0"), 0);
+	glUniform1i(glGetUniformLocation(add_force.getID(), "u1"), 1);
+	glUniform1i(glGetUniformLocation(add_force.getID(), "s0"), 2);
+	glUniform1i(glGetUniformLocation(add_force.getID(), "s1"), 3);
+
+	advect.use();
+	glUniform1i(glGetUniformLocation(advect.getID(), "u0"), 0);
+	glUniform1i(glGetUniformLocation(advect.getID(), "u1"), 1);
+	glUniform1i(glGetUniformLocation(advect.getID(), "s0"), 2);
+	glUniform1i(glGetUniformLocation(advect.getID(), "s1"), 3);
+
+	add_source.use();
+	glUniform1i(glGetUniformLocation(add_force.getID(), "u0"), 0);
+	glUniform1i(glGetUniformLocation(add_force.getID(), "u1"), 1);
+	glUniform1i(glGetUniformLocation(add_force.getID(), "s0"), 2);
+	glUniform1i(glGetUniformLocation(add_force.getID(), "s1"), 3);
+
+	render.use();
+	glUniform1i(glGetUniformLocation(render.getID(), "u"), 0);
+	glUniform1i(glGetUniformLocation(render.getID(), "s"), 2);
+
+
 
 	float vertices[] = {
 		// position		texture
@@ -86,24 +129,47 @@ int main() {
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2*sizeof(float)));
 
 
-	/* RENDER TO TARGET */
-	unsigned int rtt_fbo;
-	glGenFramebuffers(1, &rtt_fbo);
-	glBindFramebuffer(GL_FRAMEBUFFER, rtt_fbo);
+	// Render to target frame buffer
+	unsigned int data_framebuffer;
+	glGenFramebuffers(1, &data_framebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, data_framebuffer);
+	unsigned int draw_buffers[4] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
+	glDrawBuffers(4, draw_buffers);
 
-	unsigned int rendered_texture;
-	glGenTextures(1, &rendered_texture);
+	/*	DEFINE GRIDS
+	*	Grids represented as textures, two for each field to allow changes and then swapping
+	*		grid_u0		-->		velocity field
+	*		grid_u1		-->		velocity field
+	* 
+	*		grid_s0		-->		scalar substance field
+	*		grid_s1		-->		scalar substance field
+	*/
+	unsigned int grid_u0, grid_u1, grid_s0, grid_s1;
+	glGenTextures(1, &grid_u0);
+	glGenTextures(1, &grid_u1);
+	glGenTextures(1, &grid_s0);
+	glGenTextures(1, &grid_s1);
 	
-	glBindTexture(GL_TEXTURE_2D, rendered_texture);
+	glBindTexture(GL_TEXTURE_2D, grid_u0);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, GRID_WIDTH, GRID_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	configure_texture();
+	glBindTexture(GL_TEXTURE_2D, grid_u1);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, GRID_WIDTH, GRID_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+	configure_texture();
 
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, rendered_texture, 0);
 
-	unsigned int draw_buffers[1] = {GL_COLOR_ATTACHMENT0};
-	glDrawBuffers(1, draw_buffers);
+	glBindTexture(GL_TEXTURE_2D, grid_s0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, GRID_WIDTH, GRID_HEIGHT, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
+	configure_texture();
+	glBindTexture(GL_TEXTURE_2D, grid_s1);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, GRID_WIDTH, GRID_HEIGHT, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
+
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, grid_u0, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, grid_u1, 0);
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, grid_s0, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, grid_s1, 0);
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
 		std::cout << "L framebuffer creator" << std::endl;
@@ -112,20 +178,63 @@ int main() {
 
 	glBindVertexArray(VAO);
 
-	glClearColor(1,1,1,1);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, grid_u0);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, grid_u1);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, grid_s0);
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, grid_s1);
+
 	
 	float last_frame = static_cast<float>(glfwGetTime());
-	float delta_time = 0;
+	float delta_time = 0, mouse_x = 0, mouse_y = 0;
 	while (!glfwWindowShouldClose(window)) {
 		float current_frame = static_cast<float>(glfwGetTime());
 		delta_time = current_frame - last_frame;
 		last_frame = current_frame;
-
+		if (mouse_press) {
+			double x, y;
+			glfwGetCursorPos(window, &x, &y);
+			mouse_x = x;
+			mouse_y = HEIGHT - y;
+		}
 
 		processInput(window);
 
+		glBindFramebuffer(GL_FRAMEBUFFER, data_framebuffer);
+		glViewport(0, 0, GRID_WIDTH, GRID_HEIGHT);
+		glClear(GL_COLOR_BUFFER_BIT);
+		/* Complete calculations, transfer data between shaders, etc. */
+		add_force.use();
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+		/*advect.use();
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);*/
+		glClear(GL_COLOR_BUFFER_BIT);
 		
-		glBindFramebuffer(GL_FRAMEBUFFER, rtt_fbo);
+		add_source.use();
+		glUniform2f(glGetUniformLocation(add_source.getID(), "grid_size"), GRID_WIDTH, GRID_HEIGHT);
+		glUniform2f(glGetUniformLocation(add_source.getID(), "grid_num"), GRID_NUM_X, GRID_NUM_Y);
+
+		glUniform1i(glGetUniformLocation(add_source.getID(), "splat"), mouse_press);
+		glUniform2f(glGetUniformLocation(add_source.getID(), "splat_pos"), mouse_x * (GRID_NUM_X/GRID_WIDTH), mouse_y * (GRID_NUM_Y/GRID_HEIGHT));
+		glUniform1i(glGetUniformLocation(add_source.getID(), "splat_radius"), splat_radius);
+
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+
+		glBindFramebuffer(GL_FRAMEBUFFER, RENDER_FRAMEBUFFER);
+		glViewport(0, 0, WIDTH, HEIGHT);
+		glClear(GL_COLOR_BUFFER_BIT);
+		/* Render substance */
+
+		render.use();
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+		
+		/*glBindFramebuffer(GL_FRAMEBUFFER, rtt_fbo);
 
 		glViewport(0, 0, GRID_WIDTH, GRID_HEIGHT);
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -134,12 +243,19 @@ int main() {
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		
 
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, rtt_fbo);
 		glViewport(0, 0, WIDTH, HEIGHT);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 
 		sim_shader.use();
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glViewport(0, 0, WIDTH, HEIGHT);
+		glClear(GL_COLOR_BUFFER_BIT);
+		rtt_shader.use();
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 		if (mouse_press) {
 			double x, y;
@@ -150,9 +266,7 @@ int main() {
 			glUniform2f(glGetUniformLocation(sim_shader.getID(), "cursor_pos"), (float)0, (float)0);
 		}
 
-		glUniform1f(glGetUniformLocation(sim_shader.getID(), "delta_time"), delta_time);
-		glBindTexture(GL_TEXTURE_2D, rendered_texture);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glUniform1f(glGetUniformLocation(sim_shader.getID(), "delta_time"), delta_time);*/
 
 
 		glfwSwapBuffers(window);
@@ -163,7 +277,7 @@ int main() {
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &EBO);
 
-	glDeleteFramebuffers(1, &rtt_fbo);
+	glDeleteFramebuffers(1, &data_framebuffer);
 
 	glfwTerminate();
 	return 0;
@@ -186,4 +300,11 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 		else if (action == GLFW_RELEASE)
 			mouse_press = false;
 	}
+}
+
+void configure_texture() {
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 }

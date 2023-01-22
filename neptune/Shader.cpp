@@ -1,6 +1,7 @@
 #include "Shader.h"
 
 Shader::Shader(const char* vert_path, const char* frag_path) {
+    frag_file = std::string(frag_path);
     std::string vert_str;
     std::string frag_str;
     std::ifstream vert_file;
@@ -72,14 +73,14 @@ void Shader::checkCompileErrors(unsigned int shader, std::string type) {
         glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
         if (!success) {
             glGetShaderInfoLog(shader, 1024, nullptr, log);
-            std::cout << "cant even compile smh" << type << "\n" << log << std::endl;
+            std::cout << "cant even compile " << this->frag_file << " smh" << type << "\n" << log << std::endl;
         }
     }
     else {
         glGetProgramiv(shader, GL_LINK_STATUS, &success);
         if (!success) {
             glGetProgramInfoLog(shader, 1024, nullptr, log);
-            std::cout << "cant even link smh" << type << "\n" << log << std::endl;
+            std::cout << "cant even link " << this->frag_file << " smh" << type << "\n" << log << std::endl;
         }
     }
 }

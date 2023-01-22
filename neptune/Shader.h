@@ -10,6 +10,8 @@ class Shader {
 private:
 	unsigned int ID;	//Unique ID used by OpenGL context
 
+	std::string frag_file;
+
 public:
 	Shader(const char* vert_path, const char* frag_path); //Constructor, generates shader using vertex and fragment shader source files.
 
