@@ -26,7 +26,12 @@ void configure_texture(); // utility function to avoid duplicated code. Do not c
 const float diffusion_const = 1;
 const float dissipation_rate = 1;
 const float viscosity = 1;
-const float splat_radius = 50;
+
+// splat
+const int splat_radius = 50;
+const float splat_amount = 0.4;
+const float impulse_magnitude = 100;
+
 
 int main() {
 	glfwInit();
@@ -78,15 +83,16 @@ int main() {
 	glUniform1i(glGetUniformLocation(advect.getID(), "s1"), 3);
 
 	add_source.use();
-	glUniform1i(glGetUniformLocation(add_force.getID(), "u0"), 0);
-	glUniform1i(glGetUniformLocation(add_force.getID(), "u1"), 1);
-	glUniform1i(glGetUniformLocation(add_force.getID(), "s0"), 2);
-	glUniform1i(glGetUniformLocation(add_force.getID(), "s1"), 3);
+	glUniform1i(glGetUniformLocation(add_source.getID(), "u0"), 0);
+	glUniform1i(glGetUniformLocation(add_source.getID(), "u1"), 1);
+	glUniform1i(glGetUniformLocation(add_source.getID(), "s0"), 2);
+	glUniform1i(glGetUniformLocation(add_source.getID(), "s1"), 3);
 
 	render.use();
-	glUniform1i(glGetUniformLocation(render.getID(), "u"), 0);
-	glUniform1i(glGetUniformLocation(render.getID(), "s"), 2);
-
+	glUniform1i(glGetUniformLocation(render.getID(), "u0"), 0);
+	glUniform1i(glGetUniformLocation(render.getID(), "u1"), 1);
+	glUniform1i(glGetUniformLocation(render.getID(), "s0"), 2);
+	glUniform1i(glGetUniformLocation(render.getID(), "s1"), 3);
 
 
 	float vertices[] = {
@@ -178,6 +184,7 @@ int main() {
 
 	glBindVertexArray(VAO);
 
+	//render.use();
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, grid_u0);
 	glActiveTexture(GL_TEXTURE1);
@@ -205,22 +212,31 @@ int main() {
 
 		glBindFramebuffer(GL_FRAMEBUFFER, data_framebuffer);
 		glViewport(0, 0, GRID_WIDTH, GRID_HEIGHT);
-		glClear(GL_COLOR_BUFFER_BIT);
+
+		//glActiveTexture(GL_TEXTURE0);
+		//glBindTexture(GL_TEXTURE_2D, 0);
 		/* Complete calculations, transfer data between shaders, etc. */
 		add_force.use();
+		glUniform1f(glGetUniformLocation(add_force.getID(), "delta_time"), delta_time);
+		glUniform2f(glGetUniformLocation(add_force.getID(), "grid_num"), GRID_NUM_X, GRID_NUM_Y);
+		glUniform1i(glGetUniformLocation(add_force.getID(), "impulse"), mouse_press);
+		glUniform2f(glGetUniformLocation(add_force.getID(), "impulse_pos"), mouse_x * (GRID_NUM_X / GRID_WIDTH), mouse_y * (GRID_NUM_Y / GRID_HEIGHT));
+		glUniform1f(glGetUniformLocation(add_force.getID(), "r_impulse_radius"), 1/(float)splat_radius);
+		glUniform1f(glGetUniformLocation(add_force.getID(), "impulse_magnitude"), splat_amount);
+
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
+		//glBindTexture(GL_TEXTURE_2D, grid_u0);
 		/*advect.use();
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);*/
-		glClear(GL_COLOR_BUFFER_BIT);
 		
 		add_source.use();
-		glUniform2f(glGetUniformLocation(add_source.getID(), "grid_size"), GRID_WIDTH, GRID_HEIGHT);
 		glUniform2f(glGetUniformLocation(add_source.getID(), "grid_num"), GRID_NUM_X, GRID_NUM_Y);
 
 		glUniform1i(glGetUniformLocation(add_source.getID(), "splat"), mouse_press);
 		glUniform2f(glGetUniformLocation(add_source.getID(), "splat_pos"), mouse_x * (GRID_NUM_X/GRID_WIDTH), mouse_y * (GRID_NUM_Y/GRID_HEIGHT));
 		glUniform1i(glGetUniformLocation(add_source.getID(), "splat_radius"), splat_radius);
+		glUniform1f(glGetUniformLocation(add_source.getID(), "splat_amount"), splat_amount);
 
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
