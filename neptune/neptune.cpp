@@ -28,8 +28,8 @@ const float dissipation_rate = 1;
 const float viscosity = 1;
 
 // splat
-const int splat_radius = 50;
-const float splat_amount = 0.4;
+const int splat_radius = 100;
+const float splat_amount = 100;
 const float impulse_magnitude = 100;
 
 
@@ -157,10 +157,10 @@ int main() {
 	glGenTextures(1, &grid_s1);
 	
 	glBindTexture(GL_TEXTURE_2D, grid_u0);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, GRID_WIDTH, GRID_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, GRID_WIDTH, GRID_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 	configure_texture();
 	glBindTexture(GL_TEXTURE_2D, grid_u1);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, GRID_WIDTH, GRID_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, GRID_WIDTH, GRID_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 	configure_texture();
 
 
@@ -169,6 +169,7 @@ int main() {
 	configure_texture();
 	glBindTexture(GL_TEXTURE_2D, grid_s1);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, GRID_WIDTH, GRID_HEIGHT, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
+	configure_texture();
 
 
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, grid_u0, 0);
@@ -219,10 +220,10 @@ int main() {
 		add_force.use();
 		glUniform1f(glGetUniformLocation(add_force.getID(), "delta_time"), delta_time);
 		glUniform2f(glGetUniformLocation(add_force.getID(), "grid_num"), GRID_NUM_X, GRID_NUM_Y);
-		glUniform1i(glGetUniformLocation(add_force.getID(), "impulse"), mouse_press);
+		glUniform1i(glGetUniformLocation(add_force.getID(), "is_impulse"), mouse_press);
 		glUniform2f(glGetUniformLocation(add_force.getID(), "impulse_pos"), mouse_x * (GRID_NUM_X / GRID_WIDTH), mouse_y * (GRID_NUM_Y / GRID_HEIGHT));
 		glUniform1f(glGetUniformLocation(add_force.getID(), "r_impulse_radius"), 1/(float)splat_radius);
-		glUniform1f(glGetUniformLocation(add_force.getID(), "impulse_magnitude"), splat_amount);
+		glUniform1f(glGetUniformLocation(add_force.getID(), "impulse_magnitude"), impulse_magnitude);
 
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
@@ -231,11 +232,12 @@ int main() {
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);*/
 		
 		add_source.use();
+		glUniform1f(glGetUniformLocation(add_source.getID(), "delta_time"), delta_time);
 		glUniform2f(glGetUniformLocation(add_source.getID(), "grid_num"), GRID_NUM_X, GRID_NUM_Y);
 
-		glUniform1i(glGetUniformLocation(add_source.getID(), "splat"), mouse_press);
+		glUniform1i(glGetUniformLocation(add_source.getID(), "is_splat"), mouse_press);
 		glUniform2f(glGetUniformLocation(add_source.getID(), "splat_pos"), mouse_x * (GRID_NUM_X/GRID_WIDTH), mouse_y * (GRID_NUM_Y/GRID_HEIGHT));
-		glUniform1i(glGetUniformLocation(add_source.getID(), "splat_radius"), splat_radius);
+		glUniform1f(glGetUniformLocation(add_source.getID(), "r_splat_radius"), 1/(float)splat_radius);
 		glUniform1f(glGetUniformLocation(add_source.getID(), "splat_amount"), splat_amount);
 
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
