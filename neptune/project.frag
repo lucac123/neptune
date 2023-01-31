@@ -1,41 +1,24 @@
 #version 330 core
-layout (location = 0) out vec3 velocity;
+layout (location = 0) out vec2 velocity;
 
-// IN u1
-// IN u0
+// IN u1, p
+// OUT u0
 
 in vec2 tex_coord;
 
-uniform sampler2D u0;
 uniform sampler2D u1;
-uniform sampler2D s0;
-uniform sampler2D s1;
+uniform sampler2D p;
 
 uniform vec2 grid_num;
-uniform float alpha;
-uniform float r_beta;
-uniform float delta_time;
+uniform float r_grid_size;
 
 void main() {
-	vec2 u_left = texture(u1, tex_coord - vec2(1,0)/grid_num).xy;
-	vec2 u_right = texture(u1, tex_coord + vec2(1,0)/grid_num).xy;
-	vec2 u_bot = texture(u1, tex_coord - vec2(0,1)/grid_num).xy;
-	vec2 u_top = texture(u1, tex_coord + vec2(0,1)/grid_num).xy;
+	float p_left = texture(p, tex_coord - vec2(1,0)/grid_num).x;
+	float p_right = texture(p, tex_coord + vec2(1,0)/grid_num).x;
+	float p_bot = texture(p, tex_coord - vec2(0,1)/grid_num).x;
+	float p_top = texture(p, tex_coord + vec2(0,1)/grid_num).x;
 
-	vec2 u_cent = texture(u1, tex_coord).xy;
+	vec2 u = texture(u1, tex_coord).xy;
 
-	velocity = vec3((u_left + u_right + u_bot + u_top + alpha * u_cent) * r_beta, 0);
-
-	velocity = texture(u1, tex_coord).xyz;
+	velocity = u - 0.5 * r_grid_size * vec2(p_right - p_left, p_top - p_bot);
 }
-
-/*
-	DIFFUSION JACOBI SOLVER
-
-	x_{i,j}'=( x_{i-1,j} + x_{i+1,j} + x_{i,j-1} + x_{i,j+1} + \alpha*b_{i,j} )/ \beta
-		* one iteration of jacobi iteration
-	x = u
-	b = u
-	alpha = (grid_size)^2/(viscosity*delta_time)
-	beta = 4 + alpha
-*/

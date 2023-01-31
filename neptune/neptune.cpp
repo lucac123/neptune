@@ -12,31 +12,33 @@ const unsigned int RENDER_FRAMEBUFFER = 0;
 const unsigned int WIDTH = 1920;
 const unsigned int HEIGHT = 1080;
 
-const unsigned int GRID_WIDTH = 1920;
-const unsigned int GRID_HEIGHT = 1080;
 
 const unsigned int GRID_SIZE = 1;
+const unsigned int GRID_NUM_X = 1920;
+const unsigned int GRID_NUM_Y = 1080;
 
+const unsigned int GRID_WIDTH = GRID_NUM_X * GRID_SIZE;
+const unsigned int GRID_HEIGHT = GRID_NUM_Y * GRID_SIZE;
 //DONT EDIT, SQUARE GRID CELLS NECESSARY
-const unsigned int GRID_NUM_X = GRID_WIDTH/GRID_SIZE;
-const unsigned int GRID_NUM_Y = GRID_HEIGHT/GRID_SIZE;
 
 const int diffuse_iterations = 50; // 20-50
 const int project_iterations = 80; //40-80
 
 bool mouse_press = false;
 
+const float black_color[] = { 0, 0, 0, 1 };
+
 void configure_texture(); // utility function to avoid duplicated code. Do not call at the wrong time.
 
 // FLUID PROPERTIES
 const float diffusion_const = 1;
 const float dissipation_rate = 1;
-const float viscosity = 10;
+const float viscosity = 0.01;
 
 // splat
 const int splat_radius = 1000;
 const float splat_amount = 100;
-const float impulse_magnitude = 100;
+const float impulse_magnitude = 1000;
 
 
 int main() {
@@ -71,6 +73,8 @@ int main() {
 	Shader add_force("square.vert", "add_force.frag");
 	Shader advect("square.vert", "advect.frag");
 	Shader diffuse("square.vert", "diffuse.frag");
+	Shader project_jacobi("square.vert", "project_jacobi.frag");
+	Shader project_divergence("square.vert", "project_divergence.frag");
 	Shader project("square.vert", "project.frag");
 
 	Shader add_source("square.vert", "add_source.frag");
@@ -97,11 +101,26 @@ int main() {
 	glUniform1i(glGetUniformLocation(diffuse.getID(), "s0"), 2);
 	glUniform1i(glGetUniformLocation(diffuse.getID(), "s1"), 3);
 
+	project_jacobi.use();
+	glUniform1i(glGetUniformLocation(project_jacobi.getID(), "u0"), 0);
+	glUniform1i(glGetUniformLocation(project_jacobi.getID(), "u1"), 1);
+	glUniform1i(glGetUniformLocation(project_jacobi.getID(), "s0"), 2);
+	glUniform1i(glGetUniformLocation(project_jacobi.getID(), "s1"), 3);
+	glUniform1i(glGetUniformLocation(project_jacobi.getID(), "div"), 5);
+
+	project_divergence.use();
+	glUniform1i(glGetUniformLocation(project_divergence.getID(), "u0"), 0);
+	glUniform1i(glGetUniformLocation(project_divergence.getID(), "u1"), 1);
+	glUniform1i(glGetUniformLocation(project_divergence.getID(), "s0"), 2);
+	glUniform1i(glGetUniformLocation(project_divergence.getID(), "s1"), 3);
+
 	project.use();
 	glUniform1i(glGetUniformLocation(project.getID(), "u0"), 0);
 	glUniform1i(glGetUniformLocation(project.getID(), "u1"), 1);
 	glUniform1i(glGetUniformLocation(project.getID(), "s0"), 2);
 	glUniform1i(glGetUniformLocation(project.getID(), "s1"), 3);
+	glUniform1i(glGetUniformLocation(project.getID(), "p"), 4);
+	glUniform1i(glGetUniformLocation(project.getID(), "div"), 5);
 
 	add_source.use();
 	glUniform1i(glGetUniformLocation(add_source.getID(), "u0"), 0);
@@ -172,11 +191,13 @@ int main() {
 	*		grid_s0		-->		scalar substance field
 	*		grid_s1		-->		scalar substance field
 	*/
-	unsigned int grid_u0, grid_u1, grid_s0, grid_s1, grid_p;
+	unsigned int grid_u0, grid_u1, grid_s0, grid_s1, grid_p, grid_div;
 	glGenTextures(1, &grid_u0);
 	glGenTextures(1, &grid_u1);
 	glGenTextures(1, &grid_s0);
 	glGenTextures(1, &grid_s1);
+	glGenTextures(1, &grid_p);
+	glGenTextures(1, &grid_div);
 	
 	glBindTexture(GL_TEXTURE_2D, grid_u0);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, GRID_NUM_X, GRID_NUM_Y, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
@@ -187,10 +208,17 @@ int main() {
 
 
 	glBindTexture(GL_TEXTURE_2D, grid_s0);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, GRID_NUM_X, GRID_NUM_Y, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, GRID_NUM_X, GRID_NUM_Y, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
 	configure_texture();
 	glBindTexture(GL_TEXTURE_2D, grid_s1);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, GRID_NUM_X, GRID_NUM_Y, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, GRID_NUM_X, GRID_NUM_Y, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
+	configure_texture();
+
+	glBindTexture(GL_TEXTURE_2D, grid_p);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, GRID_NUM_X, GRID_NUM_Y, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
+	configure_texture();
+	glBindTexture(GL_TEXTURE_2D, grid_div);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, GRID_NUM_X, GRID_NUM_Y, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
 	configure_texture();
 
 
@@ -199,6 +227,9 @@ int main() {
 
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, grid_s0, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, grid_s1, 0);
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, grid_p, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D, grid_div, 0);
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
 		std::cout << "L framebuffer creator" << std::endl;
@@ -216,6 +247,10 @@ int main() {
 	glBindTexture(GL_TEXTURE_2D, grid_s0);
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, grid_s1);
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, grid_p);
+	glActiveTexture(GL_TEXTURE5);
+	glBindTexture(GL_TEXTURE_2D, grid_div);
 
 	
 	float last_frame = static_cast<float>(glfwGetTime());
@@ -278,13 +313,38 @@ int main() {
 		glBindTexture(GL_TEXTURE_2D, grid_u1);
 
 		/* PROJECT */
-		glActiveTexture(GL_TEXTURE0);
+		// Divergence
+		glActiveTexture(GL_TEXTURE5); // grid_div
+		glBindTexture(GL_TEXTURE_2D, 0);
+		project_divergence.use();
+		glUniform2f(glGetUniformLocation(project_divergence.getID(), "grid_num"), GRID_NUM_X, GRID_NUM_Y);
+		glUniform1f(glGetUniformLocation(project_divergence.getID(), "r_grid_size"), 1 / GRID_SIZE);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glBindTexture(GL_TEXTURE_2D, grid_div);
+
+
+		// Jacobi pressure iteration
+		glClearBufferfv(GL_COLOR, GL_COLOR_ATTACHMENT4, black_color);
+		glActiveTexture(GL_TEXTURE4); // grid_p
+		glBindTexture(GL_TEXTURE_2D, 0);
+		project_jacobi.use();
+		glUniform2f(glGetUniformLocation(project_jacobi.getID(), "grid_num"), GRID_NUM_X, GRID_NUM_Y);
+		glUniform1f(glGetUniformLocation(project_jacobi.getID(), "alpha"), -(int)(GRID_SIZE * GRID_SIZE));
+		glUniform1f(glGetUniformLocation(project_jacobi.getID(), "r_beta"), 0.25);
+		for (int i = 0; i < project_iterations; i++) {
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		}
+		glBindTexture(GL_TEXTURE_2D, grid_p);
+
+		// Subtract pressure gradient
+		glActiveTexture(GL_TEXTURE0); // grid_u0
 		glBindTexture(GL_TEXTURE_2D, 0);
 		project.use();
-		glUniform1f(glGetUniformLocation(project.getID(), "delta_time"), delta_time);
 		glUniform2f(glGetUniformLocation(project.getID(), "grid_num"), GRID_NUM_X, GRID_NUM_Y);
+		glUniform1f(glGetUniformLocation(project.getID(), "r_grid_size"), 1 / GRID_SIZE);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindTexture(GL_TEXTURE_2D, grid_u0);
+
 
 	// SCALAR FIELD
 

@@ -49,7 +49,7 @@
     <None Include="diffuse.frag">
       <Filter>Resource Files\velocity</Filter>
     </None>
-    <None Include="project.frag">
+    <None Include="project_jacobi.frag">
       <Filter>Resource Files\velocity</Filter>
     </None>
     <None Include="dissipate.frag">
@@ -60,6 +60,12 @@
     </None>
     <None Include="add_source.frag">
       <Filter>Resource Files\scalar</Filter>
+    </None>
+    <None Include="project_divergence.frag">
+      <Filter>Resource Files\velocity</Filter>
+    </None>
+    <None Include="project.frag">
+      <Filter>Resource Files\velocity</Filter>
     </None>
   </ItemGroup>
 </Project>

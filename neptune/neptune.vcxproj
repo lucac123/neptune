@@ -145,7 +145,9 @@
     <None Include="advect.frag" />
     <None Include="diffuse.frag" />
     <None Include="dissipate.frag" />
+    <None Include="project_divergence.frag" />
     <None Include="project.frag" />
+    <None Include="project_jacobi.frag" />
     <None Include="render.frag" />
     <None Include="square.vert" />
   </ItemGroup>
