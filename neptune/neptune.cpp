@@ -15,8 +15,14 @@ const unsigned int HEIGHT = 1080;
 const unsigned int GRID_WIDTH = 1920;
 const unsigned int GRID_HEIGHT = 1080;
 
-const unsigned int GRID_NUM_X = 1920;
-const unsigned int GRID_NUM_Y = 1080;
+const unsigned int GRID_SIZE = 1;
+
+//DONT EDIT, SQUARE GRID CELLS NECESSARY
+const unsigned int GRID_NUM_X = GRID_WIDTH/GRID_SIZE;
+const unsigned int GRID_NUM_Y = GRID_HEIGHT/GRID_SIZE;
+
+const int diffuse_iterations = 50; // 20-50
+const int project_iterations = 80; //40-80
 
 bool mouse_press = false;
 
@@ -25,15 +31,16 @@ void configure_texture(); // utility function to avoid duplicated code. Do not c
 // FLUID PROPERTIES
 const float diffusion_const = 1;
 const float dissipation_rate = 1;
-const float viscosity = 1;
+const float viscosity = 10;
 
 // splat
-const int splat_radius = 100;
+const int splat_radius = 1000;
 const float splat_amount = 100;
 const float impulse_magnitude = 100;
 
 
 int main() {
+	//INITIALIZATION
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -59,6 +66,8 @@ int main() {
 		return -1;
 	}
 
+
+	//SHADER STUFF
 	Shader add_force("square.vert", "add_force.frag");
 	Shader advect("square.vert", "advect.frag");
 	Shader diffuse("square.vert", "diffuse.frag");
@@ -82,6 +91,18 @@ int main() {
 	glUniform1i(glGetUniformLocation(advect.getID(), "s0"), 2);
 	glUniform1i(glGetUniformLocation(advect.getID(), "s1"), 3);
 
+	diffuse.use();
+	glUniform1i(glGetUniformLocation(diffuse.getID(), "u0"), 0);
+	glUniform1i(glGetUniformLocation(diffuse.getID(), "u1"), 1);
+	glUniform1i(glGetUniformLocation(diffuse.getID(), "s0"), 2);
+	glUniform1i(glGetUniformLocation(diffuse.getID(), "s1"), 3);
+
+	project.use();
+	glUniform1i(glGetUniformLocation(project.getID(), "u0"), 0);
+	glUniform1i(glGetUniformLocation(project.getID(), "u1"), 1);
+	glUniform1i(glGetUniformLocation(project.getID(), "s0"), 2);
+	glUniform1i(glGetUniformLocation(project.getID(), "s1"), 3);
+
 	add_source.use();
 	glUniform1i(glGetUniformLocation(add_source.getID(), "u0"), 0);
 	glUniform1i(glGetUniformLocation(add_source.getID(), "u1"), 1);
@@ -95,6 +116,7 @@ int main() {
 	glUniform1i(glGetUniformLocation(render.getID(), "s1"), 3);
 
 
+	// VERTEX STUFF
 	float vertices[] = {
 		// position		texture
 		 1,	 1,			1,	1,
@@ -150,25 +172,25 @@ int main() {
 	*		grid_s0		-->		scalar substance field
 	*		grid_s1		-->		scalar substance field
 	*/
-	unsigned int grid_u0, grid_u1, grid_s0, grid_s1;
+	unsigned int grid_u0, grid_u1, grid_s0, grid_s1, grid_p;
 	glGenTextures(1, &grid_u0);
 	glGenTextures(1, &grid_u1);
 	glGenTextures(1, &grid_s0);
 	glGenTextures(1, &grid_s1);
 	
 	glBindTexture(GL_TEXTURE_2D, grid_u0);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, GRID_WIDTH, GRID_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, GRID_NUM_X, GRID_NUM_Y, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 	configure_texture();
 	glBindTexture(GL_TEXTURE_2D, grid_u1);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, GRID_WIDTH, GRID_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, GRID_NUM_X, GRID_NUM_Y, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 	configure_texture();
 
 
 	glBindTexture(GL_TEXTURE_2D, grid_s0);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, GRID_WIDTH, GRID_HEIGHT, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, GRID_NUM_X, GRID_NUM_Y, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
 	configure_texture();
 	glBindTexture(GL_TEXTURE_2D, grid_s1);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, GRID_WIDTH, GRID_HEIGHT, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, GRID_NUM_X, GRID_NUM_Y, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
 	configure_texture();
 
 
@@ -214,33 +236,70 @@ int main() {
 		glBindFramebuffer(GL_FRAMEBUFFER, data_framebuffer);
 		glViewport(0, 0, GRID_WIDTH, GRID_HEIGHT);
 
-		//glActiveTexture(GL_TEXTURE0);
-		//glBindTexture(GL_TEXTURE_2D, 0);
+
 		/* Complete calculations, transfer data between shaders, etc. */
+
+	// VECTOR FIELD
+
+		/* ADD FORCE */
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, 0);
 		add_force.use();
 		glUniform1f(glGetUniformLocation(add_force.getID(), "delta_time"), delta_time);
 		glUniform2f(glGetUniformLocation(add_force.getID(), "grid_num"), GRID_NUM_X, GRID_NUM_Y);
 		glUniform1i(glGetUniformLocation(add_force.getID(), "is_impulse"), mouse_press);
-		glUniform2f(glGetUniformLocation(add_force.getID(), "impulse_pos"), mouse_x * (GRID_NUM_X / GRID_WIDTH), mouse_y * (GRID_NUM_Y / GRID_HEIGHT));
+		glUniform2f(glGetUniformLocation(add_force.getID(), "impulse_pos"), mouse_x / GRID_SIZE, mouse_y / GRID_SIZE);
 		glUniform1f(glGetUniformLocation(add_force.getID(), "r_impulse_radius"), 1/(float)splat_radius);
 		glUniform1f(glGetUniformLocation(add_force.getID(), "impulse_magnitude"), impulse_magnitude);
-
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glBindTexture(GL_TEXTURE_2D, grid_u1);
 
-		//glBindTexture(GL_TEXTURE_2D, grid_u0);
-		/*advect.use();
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);*/
+		/* ADVECT */
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		advect.use();
+		glUniform1f(glGetUniformLocation(advect.getID(), "delta_time"), delta_time);
+		glUniform2f(glGetUniformLocation(advect.getID(), "grid_num"), GRID_NUM_X, GRID_NUM_Y);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glBindTexture(GL_TEXTURE_2D, grid_u0);
 		
+		/* DIFFUSE */
+		float alpha = (GRID_SIZE * GRID_SIZE) / (viscosity * delta_time);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		diffuse.use();
+		glUniform1f(glGetUniformLocation(diffuse.getID(), "delta_time"), delta_time);
+		glUniform2f(glGetUniformLocation(diffuse.getID(), "grid_num"), GRID_NUM_X, GRID_NUM_Y);
+		glUniform1f(glGetUniformLocation(diffuse.getID(), "alpha"), alpha);
+		glUniform1f(glGetUniformLocation(diffuse.getID(), "r_beta"), 1 / (4 + alpha));
+		for (int i = 0; i < diffuse_iterations; i++) {
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		}
+		glBindTexture(GL_TEXTURE_2D, grid_u1);
+
+		/* PROJECT */
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		project.use();
+		glUniform1f(glGetUniformLocation(project.getID(), "delta_time"), delta_time);
+		glUniform2f(glGetUniformLocation(project.getID(), "grid_num"), GRID_NUM_X, GRID_NUM_Y);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glBindTexture(GL_TEXTURE_2D, grid_u0);
+
+	// SCALAR FIELD
+
+		/* ADD SOURCE */
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, 0);
 		add_source.use();
 		glUniform1f(glGetUniformLocation(add_source.getID(), "delta_time"), delta_time);
 		glUniform2f(glGetUniformLocation(add_source.getID(), "grid_num"), GRID_NUM_X, GRID_NUM_Y);
-
 		glUniform1i(glGetUniformLocation(add_source.getID(), "is_splat"), mouse_press);
-		glUniform2f(glGetUniformLocation(add_source.getID(), "splat_pos"), mouse_x * (GRID_NUM_X/GRID_WIDTH), mouse_y * (GRID_NUM_Y/GRID_HEIGHT));
+		glUniform2f(glGetUniformLocation(add_source.getID(), "splat_pos"), mouse_x / GRID_SIZE, mouse_y / GRID_SIZE);
 		glUniform1f(glGetUniformLocation(add_source.getID(), "r_splat_radius"), 1/(float)splat_radius);
 		glUniform1f(glGetUniformLocation(add_source.getID(), "splat_amount"), splat_amount);
-
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glBindTexture(GL_TEXTURE_2D, grid_s1);
 
 
 		glBindFramebuffer(GL_FRAMEBUFFER, RENDER_FRAMEBUFFER);
@@ -321,8 +380,8 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 }
 
 void configure_texture() {
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 }
