@@ -33,12 +33,12 @@ void configure_texture(); // utility function to avoid duplicated code. Do not c
 // FLUID PROPERTIES
 const float diffusion_const = 1;
 const float dissipation_rate = 1;
-const float viscosity = 0.01;
+const float viscosity = 1;
 
 // splat
 const int splat_radius = 1000;
 const float splat_amount = 100;
-const float impulse_magnitude = 1000;
+const float impulse_magnitude = 100;
 
 
 int main() {
