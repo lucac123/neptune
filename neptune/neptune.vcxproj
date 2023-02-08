@@ -150,6 +150,7 @@
     <None Include="project_jacobi.frag" />
     <None Include="render.frag" />
     <None Include="square.vert" />
+    <None Include="v_boundary.frag" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

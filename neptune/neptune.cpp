@@ -36,7 +36,7 @@ const float dissipation_rate = 1;
 const float viscosity = 1;
 
 // splat
-const int splat_radius = 1000;
+const int splat_radius = 5000;
 const float splat_amount = 100;
 const float impulse_magnitude = 100;
 

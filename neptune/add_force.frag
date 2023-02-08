@@ -17,7 +17,7 @@ uniform float r_impulse_radius;
 uniform float impulse_magnitude;
 
 void main() {
-	vec2 coord = tex_coord * grid_num;
+	vec2 coord = vec2(tex_coord * grid_num);
 	float force;
 	vec2 direction;
 	vec2 v = texture(u0, tex_coord).xy;

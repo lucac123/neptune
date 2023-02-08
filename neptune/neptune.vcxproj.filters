@@ -67,5 +67,6 @@
     <None Include="project.frag">
       <Filter>Resource Files\velocity</Filter>
     </None>
+    <None Include="v_boundary.frag" />
   </ItemGroup>
 </Project>
