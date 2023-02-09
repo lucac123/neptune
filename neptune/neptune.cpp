@@ -191,45 +191,47 @@ int main() {
 	*		grid_s0		-->		scalar substance field
 	*		grid_s1		-->		scalar substance field
 	*/
-	unsigned int grid_u0, grid_u1, grid_s0, grid_s1, grid_p, grid_div;
-	glGenTextures(1, &grid_u0);
-	glGenTextures(1, &grid_u1);
-	glGenTextures(1, &grid_s0);
-	glGenTextures(1, &grid_s1);
-	glGenTextures(1, &grid_p);
-	glGenTextures(1, &grid_div);
+	struct {
+		unsigned int u0;
+		unsigned int u1;
+		unsigned int s0;
+		unsigned int s1;
+		unsigned int p;
+		unsigned int div;
+	} grid;
+	glGenTextures(6, (unsigned int *)& grid);
 	
-	glBindTexture(GL_TEXTURE_2D, grid_u0);
+	glBindTexture(GL_TEXTURE_2D, grid.u0);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, GRID_NUM_X, GRID_NUM_Y, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 	configure_texture();
-	glBindTexture(GL_TEXTURE_2D, grid_u1);
+	glBindTexture(GL_TEXTURE_2D, grid.u1);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, GRID_NUM_X, GRID_NUM_Y, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 	configure_texture();
 
 
-	glBindTexture(GL_TEXTURE_2D, grid_s0);
+	glBindTexture(GL_TEXTURE_2D, grid.s0);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, GRID_NUM_X, GRID_NUM_Y, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
 	configure_texture();
-	glBindTexture(GL_TEXTURE_2D, grid_s1);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, GRID_NUM_X, GRID_NUM_Y, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
-	configure_texture();
-
-	glBindTexture(GL_TEXTURE_2D, grid_p);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, GRID_NUM_X, GRID_NUM_Y, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
-	configure_texture();
-	glBindTexture(GL_TEXTURE_2D, grid_div);
+	glBindTexture(GL_TEXTURE_2D, grid.s1);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, GRID_NUM_X, GRID_NUM_Y, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
 	configure_texture();
 
+	glBindTexture(GL_TEXTURE_2D, grid.p);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, GRID_NUM_X, GRID_NUM_Y, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
+	configure_texture();
+	glBindTexture(GL_TEXTURE_2D, grid.div);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, GRID_NUM_X, GRID_NUM_Y, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
+	configure_texture();
 
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, grid_u0, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, grid_u1, 0);
 
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, grid_s0, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, grid_s1, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, grid.u0, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, grid.u1, 0);
 
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, grid_p, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D, grid_div, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, grid.s0, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, grid.s1, 0);
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, grid.p, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D, grid.div, 0);
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
 		std::cout << "L framebuffer creator" << std::endl;
@@ -240,17 +242,17 @@ int main() {
 
 	//render.use();
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, grid_u0);
+	glBindTexture(GL_TEXTURE_2D, grid.u0);
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, grid_u1);
+	glBindTexture(GL_TEXTURE_2D, grid.u1);
 	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, grid_s0);
+	glBindTexture(GL_TEXTURE_2D, grid.s0);
 	glActiveTexture(GL_TEXTURE3);
-	glBindTexture(GL_TEXTURE_2D, grid_s1);
+	glBindTexture(GL_TEXTURE_2D, grid.s1);
 	glActiveTexture(GL_TEXTURE4);
-	glBindTexture(GL_TEXTURE_2D, grid_p);
+	glBindTexture(GL_TEXTURE_2D, grid.p);
 	glActiveTexture(GL_TEXTURE5);
-	glBindTexture(GL_TEXTURE_2D, grid_div);
+	glBindTexture(GL_TEXTURE_2D, grid.div);
 
 	
 	float last_frame = static_cast<float>(glfwGetTime());
@@ -288,7 +290,7 @@ int main() {
 		add_force.setUniform("impulse_magnitude", impulse_magnitude);
 
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glBindTexture(GL_TEXTURE_2D, grid_u1);
+		glBindTexture(GL_TEXTURE_2D, grid.u1);
 
 		/* ADVECT */
 		glActiveTexture(GL_TEXTURE0);
@@ -297,7 +299,7 @@ int main() {
 		glUniform1f(glGetUniformLocation(advect.getID(), "delta_time"), delta_time);
 		glUniform2f(glGetUniformLocation(advect.getID(), "grid_num"), GRID_NUM_X, GRID_NUM_Y);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glBindTexture(GL_TEXTURE_2D, grid_u0);
+		glBindTexture(GL_TEXTURE_2D, grid.u0);
 		
 		/* DIFFUSE */
 		float alpha = (GRID_SIZE * GRID_SIZE) / (viscosity * delta_time);
@@ -311,7 +313,7 @@ int main() {
 		for (int i = 0; i < diffuse_iterations; i++) {
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		}
-		glBindTexture(GL_TEXTURE_2D, grid_u1);
+		glBindTexture(GL_TEXTURE_2D, grid.u1);
 
 		/* PROJECT */
 		// Divergence
@@ -321,7 +323,7 @@ int main() {
 		glUniform2f(glGetUniformLocation(project_divergence.getID(), "grid_num"), GRID_NUM_X, GRID_NUM_Y);
 		glUniform1f(glGetUniformLocation(project_divergence.getID(), "r_grid_size"), 1 / GRID_SIZE);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glBindTexture(GL_TEXTURE_2D, grid_div);
+		glBindTexture(GL_TEXTURE_2D, grid.div);
 
 
 		// Jacobi pressure iteration
@@ -329,13 +331,13 @@ int main() {
 		glActiveTexture(GL_TEXTURE4); // grid_p
 		glBindTexture(GL_TEXTURE_2D, 0);
 		project_jacobi.use();
-		glUniform2f(glGetUniformLocation(project_jacobi.getID(), "grid_num"), GRID_NUM_X, GRID_NUM_Y);
+		glUniform2f(glGetUniformLocation(project_jacobi.getID(), "grid.num"), GRID_NUM_X, GRID_NUM_Y);
 		glUniform1f(glGetUniformLocation(project_jacobi.getID(), "alpha"), -(int)(GRID_SIZE * GRID_SIZE));
 		glUniform1f(glGetUniformLocation(project_jacobi.getID(), "r_beta"), 0.25);
 		for (int i = 0; i < project_iterations; i++) {
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		}
-		glBindTexture(GL_TEXTURE_2D, grid_p);
+		glBindTexture(GL_TEXTURE_2D, grid.p);
 
 		// Subtract pressure gradient
 		glActiveTexture(GL_TEXTURE0); // grid_u0
@@ -344,7 +346,7 @@ int main() {
 		glUniform2f(glGetUniformLocation(project.getID(), "grid_num"), GRID_NUM_X, GRID_NUM_Y);
 		glUniform1f(glGetUniformLocation(project.getID(), "r_grid_size"), 1 / GRID_SIZE);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glBindTexture(GL_TEXTURE_2D, grid_u0);
+		glBindTexture(GL_TEXTURE_2D, grid.u0);
 
 
 	// SCALAR FIELD
@@ -354,13 +356,13 @@ int main() {
 		glBindTexture(GL_TEXTURE_2D, 0);
 		add_source.use();
 		glUniform1f(glGetUniformLocation(add_source.getID(), "delta_time"), delta_time);
-		glUniform2f(glGetUniformLocation(add_source.getID(), "grid_num"), GRID_NUM_X, GRID_NUM_Y);
+		glUniform2f(glGetUniformLocation(add_source.getID(), "grid.num"), GRID_NUM_X, GRID_NUM_Y);
 		glUniform1i(glGetUniformLocation(add_source.getID(), "is_splat"), mouse_press);
 		glUniform2f(glGetUniformLocation(add_source.getID(), "splat_pos"), mouse_x / GRID_SIZE, mouse_y / GRID_SIZE);
 		glUniform1f(glGetUniformLocation(add_source.getID(), "r_splat_radius"), 1/(float)splat_radius);
 		glUniform1f(glGetUniformLocation(add_source.getID(), "splat_amount"), splat_amount);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glBindTexture(GL_TEXTURE_2D, grid_s1);
+		glBindTexture(GL_TEXTURE_2D, grid.s1);
 
 
 		glBindFramebuffer(GL_FRAMEBUFFER, RENDER_FRAMEBUFFER);
