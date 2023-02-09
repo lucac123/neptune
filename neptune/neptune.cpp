@@ -84,55 +84,55 @@ int main() {
 
 	
 	add_force.use();
-	glUniform1i(glGetUniformLocation(add_force.getID(), "u0"), 0);
-	glUniform1i(glGetUniformLocation(add_force.getID(), "u1"), 1);
-	glUniform1i(glGetUniformLocation(add_force.getID(), "s0"), 2);
-	glUniform1i(glGetUniformLocation(add_force.getID(), "s1"), 3);
+	add_force.setUniform("u0", 0);
+	add_force.setUniform("u1", 1);
+	add_force.setUniform("s0", 2);
+	add_force.setUniform("s1", 3);
 
 	advect.use();
-	glUniform1i(glGetUniformLocation(advect.getID(), "u0"), 0);
-	glUniform1i(glGetUniformLocation(advect.getID(), "u1"), 1);
-	glUniform1i(glGetUniformLocation(advect.getID(), "s0"), 2);
-	glUniform1i(glGetUniformLocation(advect.getID(), "s1"), 3);
+	advect.setUniform("u0", 0);
+	advect.setUniform("u1", 1);
+	advect.setUniform("s0", 2);
+	advect.setUniform("s1", 3);
 
 	diffuse.use();
-	glUniform1i(glGetUniformLocation(diffuse.getID(), "u0"), 0);
-	glUniform1i(glGetUniformLocation(diffuse.getID(), "u1"), 1);
-	glUniform1i(glGetUniformLocation(diffuse.getID(), "s0"), 2);
-	glUniform1i(glGetUniformLocation(diffuse.getID(), "s1"), 3);
+	diffuse.setUniform("u0", 0);
+	diffuse.setUniform("u1", 1);
+	diffuse.setUniform("s0", 2);
+	diffuse.setUniform("s1", 3);
 
 	project_jacobi.use();
-	glUniform1i(glGetUniformLocation(project_jacobi.getID(), "u0"), 0);
-	glUniform1i(glGetUniformLocation(project_jacobi.getID(), "u1"), 1);
-	glUniform1i(glGetUniformLocation(project_jacobi.getID(), "s0"), 2);
-	glUniform1i(glGetUniformLocation(project_jacobi.getID(), "s1"), 3);
+	project_jacobi.setUniform("u0", 0);
+	project_jacobi.setUniform("u1", 1);
+	project_jacobi.setUniform("s0", 2);
+	project_jacobi.setUniform("s1", 3);
 	glUniform1i(glGetUniformLocation(project_jacobi.getID(), "div"), 5);
 
 	project_divergence.use();
-	glUniform1i(glGetUniformLocation(project_divergence.getID(), "u0"), 0);
-	glUniform1i(glGetUniformLocation(project_divergence.getID(), "u1"), 1);
-	glUniform1i(glGetUniformLocation(project_divergence.getID(), "s0"), 2);
-	glUniform1i(glGetUniformLocation(project_divergence.getID(), "s1"), 3);
+	project_divergence.setUniform("u0", 0);
+	project_divergence.setUniform("u1", 1);
+	project_divergence.setUniform("s0", 2);
+	project_divergence.setUniform("s1", 3);
 
 	project.use();
-	glUniform1i(glGetUniformLocation(project.getID(), "u0"), 0);
-	glUniform1i(glGetUniformLocation(project.getID(), "u1"), 1);
-	glUniform1i(glGetUniformLocation(project.getID(), "s0"), 2);
-	glUniform1i(glGetUniformLocation(project.getID(), "s1"), 3);
+	project.setUniform("u0", 0);
+	project.setUniform("u1", 1);
+	project.setUniform("s0", 2);
+	project.setUniform("s1", 3);
 	glUniform1i(glGetUniformLocation(project.getID(), "p"), 4);
 	glUniform1i(glGetUniformLocation(project.getID(), "div"), 5);
 
 	add_source.use();
-	glUniform1i(glGetUniformLocation(add_source.getID(), "u0"), 0);
-	glUniform1i(glGetUniformLocation(add_source.getID(), "u1"), 1);
-	glUniform1i(glGetUniformLocation(add_source.getID(), "s0"), 2);
-	glUniform1i(glGetUniformLocation(add_source.getID(), "s1"), 3);
+	add_source.setUniform("u0", 0);
+	add_source.setUniform("u1", 1);
+	add_source.setUniform("s0", 2);
+	add_source.setUniform("s1", 3);
 
 	render.use();
-	glUniform1i(glGetUniformLocation(render.getID(), "u0"), 0);
-	glUniform1i(glGetUniformLocation(render.getID(), "u1"), 1);
-	glUniform1i(glGetUniformLocation(render.getID(), "s0"), 2);
-	glUniform1i(glGetUniformLocation(render.getID(), "s1"), 3);
+	render.setUniform("u0", 0);
+	render.setUniform("u1", 1);
+	render.setUniform("s0", 2);
+	render.setUniform("s1", 3);
 
 
 	// VERTEX STUFF
@@ -280,12 +280,13 @@ int main() {
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, 0);
 		add_force.use();
-		glUniform1f(glGetUniformLocation(add_force.getID(), "delta_time"), delta_time);
-		glUniform2f(glGetUniformLocation(add_force.getID(), "grid_num"), GRID_NUM_X, GRID_NUM_Y);
-		glUniform1i(glGetUniformLocation(add_force.getID(), "is_impulse"), mouse_press);
-		glUniform2f(glGetUniformLocation(add_force.getID(), "impulse_pos"), mouse_x / GRID_SIZE, mouse_y / GRID_SIZE);
-		glUniform1f(glGetUniformLocation(add_force.getID(), "r_impulse_radius"), 1/(float)splat_radius);
-		glUniform1f(glGetUniformLocation(add_force.getID(), "impulse_magnitude"), impulse_magnitude);
+		add_force.setUniform("delta_time", delta_time);
+		add_force.setUniform("grid_num", GRID_NUM_X, GRID_NUM_Y);
+		add_force.setUniform("is_impulse", mouse_press);
+		add_force.setUniform("impulse_pos", mouse_x / GRID_SIZE, mouse_y / GRID_SIZE);
+		add_force.setUniform("r_impulse_radius", 1 / (float)splat_radius);
+		add_force.setUniform("impulse_magnitude", impulse_magnitude);
+
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindTexture(GL_TEXTURE_2D, grid_u1);
 
