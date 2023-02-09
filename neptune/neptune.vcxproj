@@ -133,14 +133,26 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\Libraries\OpenGL\src\glad.c" />
+    <ClCompile Include="FrameBuffer.cpp" />
     <ClCompile Include="neptune.cpp" />
     <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="Texture.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="FrameBuffer.h" />
     <ClInclude Include="Shader.h" />
+    <ClInclude Include="Texture.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="square.vert" />
+    <None Include="add_force.frag" />
+    <None Include="advect.frag" />
+    <None Include="boundary.frag" />
+    <None Include="divergence.frag" />
+    <None Include="jacobi.frag" />
+    <None Include="quad.vert" />
+    <None Include="render.frag" />
+    <None Include="subtract.frag" />
+    <None Include="swap.frag" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

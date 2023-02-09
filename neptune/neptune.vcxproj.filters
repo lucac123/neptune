@@ -24,14 +24,50 @@
     <ClCompile Include="..\..\..\..\Libraries\OpenGL\src\glad.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Texture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FrameBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="square.vert">
+    <None Include="quad.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="add_force.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="advect.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="boundary.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="divergence.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="jacobi.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="subtract.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="swap.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="render.frag">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
