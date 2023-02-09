@@ -34,8 +34,5 @@
     <None Include="square.vert">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="rtt.frag">
-      <Filter>Resource Files</Filter>
-    </None>
   </ItemGroup>
 </Project>
