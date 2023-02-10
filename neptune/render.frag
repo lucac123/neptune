@@ -7,4 +7,6 @@ uniform sampler2DRect velocity;
 
 void main() {
 	color = texture(velocity, texel);
+	color.x /= 1920;
+	color.y /= 1080;
 }

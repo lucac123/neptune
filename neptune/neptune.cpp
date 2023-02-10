@@ -6,6 +6,7 @@
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+void mouse_callback(GLFWwindow* window, double x, double y);
 void processInput(GLFWwindow* window);
 
 const unsigned int WINDOW_WIDTH = 1920;
@@ -15,8 +16,9 @@ const unsigned int WINDOW_HEIGHT = 1080;
 const unsigned int CELL_SIZE = 1;
 const unsigned int GRID_NUM[] = { 1920, 1080 };
 
-const float force_magnitude = 10;
-const float r_force_radius = 1 / 10;
+const float force_multiplier = 10000;
+const float r_force_radius = 1.0 / 1000;
+float force[2] = { 0,0 };
 
 bool is_click = false;
 float mouse_x = 0;
@@ -41,6 +43,7 @@ int main() {
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetMouseButtonCallback(window, mouse_button_callback);
+	glfwSetCursorPosCallback(window, mouse_callback);
 
 	GLFWcursor* cursor = glfwCreateStandardCursor(GLFW_CROSSHAIR_CURSOR);
 	glfwSetCursor(window, cursor);
@@ -121,6 +124,7 @@ int main() {
 		*		out - velocity1
 		*		parameters: 
 		*			delta_time - timestep
+		*			cell_size - grid cell size
 		*			is_impulse - true when click
 		*			impulse_magnitude - magnitude of impulse
 		*			impulse_pos - position of click
@@ -131,10 +135,11 @@ int main() {
 		add_force.use();
 		add_force.setUniform("in_velocity", 0);
 		add_force.setUniform("delta_time", delta_time);
-		add_force.setUniform("is_impulse", is_click);
-		add_force.setUniform("impulse_magnitude", force_magnitude);
-		add_force.setUniform("impulse_pos", mouse_x, mouse_y);
-		add_force.setUniform("r_impulse_radius", r_force_radius);
+		add_force.setUniform("is_force", is_click);
+		add_force.setUniform("force_multiplier", force_multiplier);
+		add_force.setUniform("force", force[0], force[1]);
+		add_force.setUniform("force_pos", mouse_x, mouse_y);
+		add_force.setUniform("r_force_radius", r_force_radius);
 
 		runShader();
 
@@ -249,15 +254,21 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
 	if (button == GLFW_MOUSE_BUTTON_LEFT) {
-		if (action == GLFW_PRESS) {
+		if (action == GLFW_PRESS)
 			is_click = true;
-			double x, y;
-			glfwGetCursorPos(window, &x, &y);
-			mouse_x = (x / WINDOW_WIDTH) * GRID_NUM[0];
-			mouse_y = (1 - y/WINDOW_HEIGHT) * GRID_NUM[1];
-		}
 		else if (action == GLFW_RELEASE)
 			is_click = false;
+	}
+}
+
+void mouse_callback(GLFWwindow* window, double x, double y) {
+	float new_x = (x / WINDOW_WIDTH) * GRID_NUM[0];
+	float new_y = (1 - y / WINDOW_HEIGHT) * GRID_NUM[1];
+	if (mouse_x != new_x || mouse_y != new_y) {
+		force[0] = new_x - mouse_x;
+		force[1] = new_y - mouse_y;
+		mouse_x = new_x;
+		mouse_y = new_y;
 	}
 }
 

@@ -7,18 +7,18 @@ uniform sampler2DRect in_velocity;
 
 uniform float delta_time;
 
-uniform bool is_impulse;
-uniform float impulse_magnitude;
-uniform vec2 impulse_pos;
-uniform float r_impulse_radius;
+uniform bool is_force;
+uniform float force_multiplier;
+uniform vec2 force;
+uniform vec2 force_pos;
+uniform float r_force_radius;
 
 void main() {
 	velocity = texture(in_velocity, texel).xy;
 
-	if (is_impulse) {
-		float distance = length(texel-impulse_pos);
-		float force = impulse_magnitude * (exp(-1 * pow(distance, 2)*r_impulse_radius));;
-		vec2 direction = normalize(texel-impulse_pos);
-		velocity += delta_time * force * direction;
+	if (is_force) {
+		vec2 computed_force = force*force_multiplier*delta_time;
+		float splat = exp(-1*pow(length(texel-force_pos),2)*r_force_radius);
+		velocity += computed_force * splat;
 	}
 }
