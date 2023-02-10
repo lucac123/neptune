@@ -16,15 +16,18 @@ const unsigned int WINDOW_HEIGHT = 1080;
 const unsigned int CELL_SIZE = 1;
 const unsigned int GRID_NUM[] = { 1920, 1080 };
 
-const float force_multiplier = 1;
+const float force_multiplier = 500;
 const float r_force_radius = 1.0 / 1000;
 float force[2] = { 0,0 };
+
+const float splat_multiplier = 0.5;
+const float r_splat_radius = 1.0 / 100;
 
 bool is_click = false;
 float mouse_x = 0;
 float mouse_y = 0;
 
-float viscosity = 0.1;
+float viscosity = 0.0001;
 float diffuse_iterations = 50; // 20-50
 
 float project_iterations = 80; // 40-80
@@ -67,6 +70,8 @@ int main() {
 	Shader jacobi("quad.vert", "jacobi.frag");
 	Shader subtract_gradient("quad.vert", "subtract_gradient.frag");
 	Shader swap("quad.vert", "swap.frag");
+
+	Shader add_source("quad.vert", "add_source.frag");
 
 	Shader render("quad.vert", "render.frag");
 
@@ -156,6 +161,8 @@ int main() {
 		data_framebuffer.bindTexture(velocity0.getID());
 		velocity1.bind();
 		advect.use();
+		advect.setUniform("in_quantity", 0);
+		advect.setUniform("velocity", 0);
 		advect.setUniform("delta_time", delta_time);
 
 		runShader();
@@ -280,12 +287,38 @@ int main() {
 		*		in - substance0
 		*		out - substance1
 		*/
+		data_framebuffer.bindTexture(substance1.getID());
+		substance0.bind();
+		add_source.use();
+		add_source.setUniform("in_substance", 0);
+		add_source.setUniform("time", current_frame);
+		add_source.setUniform("is_splat", is_click);
+		add_source.setUniform("splat_pos", mouse_x, mouse_y);
+		add_source.setUniform("r_splat_radius", r_splat_radius);
+		add_source.setUniform("splat_multiplier", splat_multiplier);
+
+		runShader();
+
+		data_framebuffer.bindTexture(substance0.getID());
+		substance1.bind();
+		swap.use();
+		//runShader();
 
 		/* Advect
 		*	shader: advect
 		*		in - substance1
 		*		out - substance0
 		*/
+		data_framebuffer.bindTexture(substance0.getID());
+		substance1.bind();
+		velocity0.bind(GL_TEXTURE1);
+
+		advect.use();
+		advect.setUniform("in_quantity", 0);
+		advect.setUniform("velocity", 1);
+		advect.setUniform("delta_time", delta_time);
+
+		runShader();
 
 		/* Diffuse
 		*	loop:
@@ -304,9 +337,11 @@ int main() {
 		*/
 		data_framebuffer.unbind(); // back to default frame buffer
 		velocity0.bind(GL_TEXTURE0); // bind velocity 0 texture to TEXTURE0
+		substance0.bind(GL_TEXTURE1);
 		
 		render.use();
 		render.setUniform("velocity", 0); // set texture
+		render.setUniform("substance", 1);
 		runShader();
 
 		glfwSwapBuffers(window);

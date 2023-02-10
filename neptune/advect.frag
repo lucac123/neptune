@@ -1,13 +1,14 @@
 #version 330 core
-out vec2 velocity;
+out vec3 quantity;
 
 in vec2 texel;
 
-uniform sampler2DRect in_velocity;
+uniform sampler2DRect in_quantity;
+uniform sampler2DRect velocity;
 
 uniform float delta_time;
 
 void main() {
-	vec2 last_coord = texel - texture(in_velocity, texel).xy * delta_time;
-	velocity = texture(in_velocity, last_coord).xy;
+	vec2 last_coord = texel - texture(velocity, texel).xy * delta_time;
+	quantity = texture(in_quantity, last_coord).xyz;
 }

@@ -145,6 +145,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="add_force.frag" />
+    <None Include="add_source.frag" />
     <None Include="advect.frag" />
     <None Include="boundary.frag" />
     <None Include="divergence.frag" />

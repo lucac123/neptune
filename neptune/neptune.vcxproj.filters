@@ -70,5 +70,8 @@
     <None Include="render.frag">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="add_source.frag">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
