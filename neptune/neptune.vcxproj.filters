@@ -61,7 +61,7 @@
     <None Include="jacobi.frag">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="subtract.frag">
+    <None Include="subtract_gradient.frag">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="swap.frag">

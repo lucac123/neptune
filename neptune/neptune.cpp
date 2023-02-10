@@ -16,13 +16,18 @@ const unsigned int WINDOW_HEIGHT = 1080;
 const unsigned int CELL_SIZE = 1;
 const unsigned int GRID_NUM[] = { 1920, 1080 };
 
-const float force_multiplier = 10000;
+const float force_multiplier = 1;
 const float r_force_radius = 1.0 / 1000;
 float force[2] = { 0,0 };
 
 bool is_click = false;
 float mouse_x = 0;
 float mouse_y = 0;
+
+float viscosity = 0.1;
+float diffuse_iterations = 50; // 20-50
+
+float project_iterations = 80; // 40-80
 
 // utility functions
 void runShader();
@@ -60,7 +65,7 @@ int main() {
 	Shader boundary("quad.vert", "boundary.frag");
 	Shader divergence("quad.vert", "divergence.frag");
 	Shader jacobi("quad.vert", "jacobi.frag");
-	Shader subtract("quad.vert", "subtract.frag");
+	Shader subtract_gradient("quad.vert", "subtract_gradient.frag");
 	Shader swap("quad.vert", "swap.frag");
 
 	Shader render("quad.vert", "render.frag");
@@ -124,11 +129,10 @@ int main() {
 		*		out - velocity1
 		*		parameters: 
 		*			delta_time - timestep
-		*			cell_size - grid cell size
-		*			is_impulse - true when click
-		*			impulse_magnitude - magnitude of impulse
-		*			impulse_pos - position of click
-		*			r_impulse_radius - 1/(impulse radius)
+		*			is_force - true when click
+		*			force - force vector
+		*			force_pos - position of click
+		*			r_force_radius - 1/(force radius)
 		*/
 		data_framebuffer.bindTexture(velocity1.getID());
 		velocity0.bind();
@@ -136,7 +140,6 @@ int main() {
 		add_force.setUniform("in_velocity", 0);
 		add_force.setUniform("delta_time", delta_time);
 		add_force.setUniform("is_force", is_click);
-		add_force.setUniform("force_multiplier", force_multiplier);
 		add_force.setUniform("force", force[0], force[1]);
 		add_force.setUniform("force_pos", mouse_x, mouse_y);
 		add_force.setUniform("r_force_radius", r_force_radius);
@@ -147,7 +150,15 @@ int main() {
 		*	shader: advect
 		*		in - velocity1
 		*		out - velocity0
+		*		parameters:
+		*			delta_time - timestep
 		*/
+		data_framebuffer.bindTexture(velocity0.getID());
+		velocity1.bind();
+		advect.use();
+		advect.setUniform("delta_time", delta_time);
+
+		runShader();
 
 		/* Diffuse
 		*	loop:
@@ -157,37 +168,103 @@ int main() {
 		*		shader: jacobi
 		*			in - velocity1
 		*			out - velocity0
+		*			parameters:
+		*				delta_time - timestep
+		*				alpha - (cell size)^2/(viscosity * timestep)
+		*				beta - 4 + alpha
 		*/
+		jacobi.use();
+		jacobi.setUniform("input_x", 0);
+		jacobi.setUniform("input_b", 0);
+		jacobi.setUniform("delta_time", delta_time);
+		float alpha = CELL_SIZE * CELL_SIZE / (viscosity * delta_time);
+		jacobi.setUniform("alpha", alpha);
+		jacobi.setUniform("r_beta", 1/(alpha + 4));
+
+		for (int i = 0; i < diffuse_iterations/2; i++) {
+			data_framebuffer.bindTexture(velocity1.getID());
+			velocity0.bind();
+			runShader();
+
+			data_framebuffer.bindTexture(velocity0.getID());
+			velocity1.bind();
+			runShader();
+		}
 
 		/* Project
 		*	shader: divergence
-		*		in - velocity1
+		*		in - velocity0
 		*		out - velocity_div
-		* 
-		*	loop:					// Pressure
+		*		parameters:
+		*			r_cell_size - 1/cell size */
+		data_framebuffer.bindTexture(velocity_div.getID());
+		velocity0.bind();
+		divergence.use();
+		divergence.setUniform("v_field", 0);
+		divergence.setUniform("r_cell_size", 1 / (float)CELL_SIZE);
+		runShader();
+
+		/*	loop:					// Pressure
 		*		shader: jacobi
 		*			in - pressure0
 		*			out - pressure1
 		*		shader: jacobi
 		*			in - pressure1
-		*			out - pressure0
-		* 
-		*	shader: subtract
-		*		in - velocity1, pressure0
-		*		out - velocity0
+		*			out - pressure0 */
+		data_framebuffer.bindTexture(pressure0.getID()); //Reset pressure to 0
+		glClearColor(0, 0, 0, 0);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		velocity_div.bind(GL_TEXTURE1);
+		jacobi.use();
+		jacobi.setUniform("input_x", 0);
+		jacobi.setUniform("input_b", 1);
+		jacobi.setUniform("alpha", (float) -1 * (CELL_SIZE * CELL_SIZE));
+		jacobi.setUniform("r_beta", 0.25f);
+		for (int i = 0; i < project_iterations / 2; i++) {
+			data_framebuffer.bindTexture(pressure0.getID());
+			pressure1.bind();
+			runShader();
+
+			data_framebuffer.bindTexture(pressure1.getID());
+			pressure0.bind();
+			runShader();
+		}
+
+		/*	shader: subtract_gradient
+		*		in - velocity0, pressure0
+		*		out - velocity1
 		*/
+		data_framebuffer.bindTexture(velocity1.getID());
+		velocity0.bind(GL_TEXTURE0);
+		pressure0.bind(GL_TEXTURE1);
+		subtract_gradient.use();
+		subtract_gradient.setUniform("in_velocity", 0);
+		subtract_gradient.setUniform("in_pressure", 1);
+		subtract_gradient.setUniform("r_cell_size", 1 / (float)CELL_SIZE);
+
+		runShader();
+		pressure0.unbind();
+
 
 		/* Boundary
 		*	shader: boundary		// Velocity
-		*		in - velocity0
-		*		out - velocity1
-		*	shader: swap
+		*		in - velocity1
+		*		out - velocity0 */
+		data_framebuffer.bindTexture(velocity0.getID());
+		velocity1.bind();
+		boundary.use();
+		boundary.setUniform("field", 0);
+		boundary.setUniform("scale", -1);
+		runShader();
+
+		/*	shader: swap
 		*		in - velocity1
 		*		out - velocity0		*/
 		data_framebuffer.bindTexture(velocity0.getID());
 		velocity1.bind();
 		swap.use();
-		runShader();
+		//runShader();
 
 		/*	shader: boundary		// Pressure
 		*		in - pressure0
@@ -265,8 +342,8 @@ void mouse_callback(GLFWwindow* window, double x, double y) {
 	float new_x = (x / WINDOW_WIDTH) * GRID_NUM[0];
 	float new_y = (1 - y / WINDOW_HEIGHT) * GRID_NUM[1];
 	if (mouse_x != new_x || mouse_y != new_y) {
-		force[0] = new_x - mouse_x;
-		force[1] = new_y - mouse_y;
+		force[0] = (new_x - mouse_x)*force_multiplier;
+		force[1] = (new_y - mouse_y)*force_multiplier;
 		mouse_x = new_x;
 		mouse_y = new_y;
 	}

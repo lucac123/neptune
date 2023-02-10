@@ -151,7 +151,7 @@
     <None Include="jacobi.frag" />
     <None Include="quad.vert" />
     <None Include="render.frag" />
-    <None Include="subtract.frag" />
+    <None Include="subtract_gradient.frag" />
     <None Include="swap.frag" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
