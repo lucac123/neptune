@@ -10,9 +10,9 @@ FrameBuffer::FrameBuffer(unsigned int num_attachments) {
 		this->draw_buffers[i] = GL_COLOR_ATTACHMENT0 + i;
 	glDrawBuffers(num_attachments, this->draw_buffers);
 
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+	/*if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
 		std::cout << "L framebuffer creator" << std::endl;
-	}
+	}*/
 
 	this->unbind();
 }

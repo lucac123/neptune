@@ -1,8 +1,10 @@
 #version 330 core
 out vec4 color;
 
-in vec2 tex_coord;
+in vec2 texel;
+
+uniform sampler2DRect velocity;
 
 void main() {
-	color = vec4(1, 0.8, 0.3, 1);
+	color = texture(velocity, texel);
 }

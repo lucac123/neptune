@@ -5,6 +5,7 @@
 #include "FrameBuffer.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void processInput(GLFWwindow* window);
 
 const unsigned int WINDOW_WIDTH = 1920;
@@ -13,6 +14,13 @@ const unsigned int WINDOW_HEIGHT = 1080;
 // SIM CONSTANTS
 const unsigned int CELL_SIZE = 1;
 const unsigned int GRID_NUM[] = { 1920, 1080 };
+
+const float force_magnitude = 10;
+const float r_force_radius = 1 / 10;
+
+bool is_click = false;
+float mouse_x = 0;
+float mouse_y = 0;
 
 // utility functions
 void runShader();
@@ -32,6 +40,10 @@ int main() {
 	}
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
+
+	GLFWcursor* cursor = glfwCreateStandardCursor(GLFW_CROSSHAIR_CURSOR);
+	glfwSetCursor(window, cursor);
 
 	/* GLAD */
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -53,12 +65,12 @@ int main() {
 	/* SCREEN QUAD */
 	float screen_quad[] = {
 		// position		texture
-		 1,	 1,			1,	1,
-		 1,	-1,			1,	0,
-		-1,	 1,			0,	1,
-		-1,	-1,			0,	0,
-		-1,	 1,			0,	1,
-		 1,	-1,			1,	0,
+		 1,	 1,			GRID_NUM[0],	GRID_NUM[1],
+		 1,	-1,			GRID_NUM[0],	0,
+		-1,	 1,			0,				GRID_NUM[1],
+		-1,	-1,			0,				0,
+		-1,	 1,			0,				GRID_NUM[1],
+		 1,	-1,			GRID_NUM[0],	0,
 	};
 
 	unsigned int quad_vertex_buffer, quad_vertex_array;
@@ -105,92 +117,114 @@ int main() {
 	/** VELOCITY **/
 		/* Add Force
 		*	shader: add_force
-		*		in - v0
-		*		out - v1
+		*		in - velocity0
+		*		out - velocity1
+		*		parameters: 
+		*			delta_time - timestep
+		*			is_impulse - true when click
+		*			impulse_magnitude - magnitude of impulse
+		*			impulse_pos - position of click
+		*			r_impulse_radius - 1/(impulse radius)
 		*/
+		data_framebuffer.bindTexture(velocity1.getID());
+		velocity0.bind();
+		add_force.use();
+		add_force.setUniform("in_velocity", 0);
+		add_force.setUniform("delta_time", delta_time);
+		add_force.setUniform("is_impulse", is_click);
+		add_force.setUniform("impulse_magnitude", force_magnitude);
+		add_force.setUniform("impulse_pos", mouse_x, mouse_y);
+		add_force.setUniform("r_impulse_radius", r_force_radius);
 
+		runShader();
 
 		/* Advect 
 		*	shader: advect
-		*		in - v1
-		*		out - v0
+		*		in - velocity1
+		*		out - velocity0
 		*/
 
 		/* Diffuse
 		*	loop:
 		*		shader: jacobi
-		*			in - v0
-		*			out - v1
+		*			in - velocity0
+		*			out - velocity1
 		*		shader: jacobi
-		*			in - v1
-		*			out - v0
+		*			in - velocity1
+		*			out - velocity0
 		*/
 
 		/* Project
 		*	shader: divergence
-		*		in - v1
-		*		out - v_div
+		*		in - velocity1
+		*		out - velocity_div
 		* 
 		*	loop:					// Pressure
 		*		shader: jacobi
-		*			in - p0
-		*			out - p1
+		*			in - pressure0
+		*			out - pressure1
 		*		shader: jacobi
-		*			in - p1
-		*			out - p0
+		*			in - pressure1
+		*			out - pressure0
 		* 
 		*	shader: subtract
-		*		in - v1, p0
-		*		out - v0
+		*		in - velocity1, pressure0
+		*		out - velocity0
 		*/
 
 		/* Boundary
 		*	shader: boundary		// Velocity
-		*		in - v0
-		*		out - v1
+		*		in - velocity0
+		*		out - velocity1
 		*	shader: swap
-		*		in - v1
-		*		out - v0
-		* 
-		*	shader: boundary		// Pressure
-		*		in - p0
-		*		out - p1
+		*		in - velocity1
+		*		out - velocity0		*/
+		data_framebuffer.bindTexture(velocity0.getID());
+		velocity1.bind();
+		swap.use();
+		runShader();
+
+		/*	shader: boundary		// Pressure
+		*		in - pressure0
+		*		out - pressure1
 		*	shader: swap
-		*		in - p1
-		*		in - p0
+		*		in - pressure1
+		*		in - pressure0
 		*/
 
 	/** DYE **/
 		/* Add Source
 		*	shader: add_force
-		*		in - s0
-		*		out - s1
+		*		in - substance0
+		*		out - substance1
 		*/
 
 		/* Advect
 		*	shader: advect
-		*		in - s1
-		*		out - s0
+		*		in - substance1
+		*		out - substance0
 		*/
 
 		/* Diffuse
 		*	loop:
 		*		shader: jacobi
-		*			in - s0
-		*			out - s1
+		*			in - substance0
+		*			out - substance1
 		*		shader: jacobi
-		*			in - s1
-		*			out - s0
+		*			in - substance1
+		*			out - substance0
 		*/
 
 	/** RENDER **/
 		/* Render
 		*	shader: render
-		*		in - u0, s0
+		*		in - velocity0, substance0
 		*/
-
-		data_framebuffer.unbind();
+		data_framebuffer.unbind(); // back to default frame buffer
+		velocity0.bind(GL_TEXTURE0); // bind velocity 0 texture to TEXTURE0
+		
 		render.use();
+		render.setUniform("velocity", 0); // set texture
 		runShader();
 
 		glfwSwapBuffers(window);
@@ -211,6 +245,20 @@ void processInput(GLFWwindow* window) {
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+	if (button == GLFW_MOUSE_BUTTON_LEFT) {
+		if (action == GLFW_PRESS) {
+			is_click = true;
+			double x, y;
+			glfwGetCursorPos(window, &x, &y);
+			mouse_x = (x / WINDOW_WIDTH) * GRID_NUM[0];
+			mouse_y = (1 - y/WINDOW_HEIGHT) * GRID_NUM[1];
+		}
+		else if (action == GLFW_RELEASE)
+			is_click = false;
+	}
 }
 
 void runShader() {

@@ -13,8 +13,8 @@ public:
 	void bind() const;
 	void unbind() const;
 
-	void bindTexture(unsigned int tex_id, unsigned int attachment = GL_COLOR_ATTACHMENT0) const;
-	void unbindTexture(unsigned int attachment = GL_COLOR_ATTACHMENT0) const;
+	void bindTexture(unsigned int tex_id, unsigned int attachment = 0) const;
+	void unbindTexture(unsigned int attachment = 0) const;
 
 	unsigned int getID() const;
 };
