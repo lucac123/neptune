@@ -17,11 +17,11 @@ const unsigned int CELL_SIZE = 1;
 const unsigned int GRID_NUM[] = { 1920, 1080 };
 
 const float force_multiplier = 1000;
-const float r_force_radius = 1.0 / 1000;
+const float r_force_radius = 1.0 / 100;
 float force[2] = { 0,0 };
 
-const float splat_multiplier = 1;
-const float r_splat_radius = 1.0 / 100;
+const float splat_multiplier = 0.3;
+const float r_splat_radius = 1.0 / 300;
 
 bool is_click = false;
 float mouse_x = 0;
