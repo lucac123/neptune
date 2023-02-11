@@ -17,17 +17,17 @@ const unsigned int CELL_SIZE = 1;
 const unsigned int GRID_NUM[] = { 1920, 1080 };
 
 const float force_multiplier = 1000;
-const float r_force_radius = 1.0 / 100;
+const float r_force_radius = 1.0 / 1000;
 float force[2] = { 0,0 };
 
-const float splat_multiplier = 10;
+const float splat_multiplier = 1;
 const float r_splat_radius = 1.0 / 100;
 
 bool is_click = false;
 float mouse_x = 0;
 float mouse_y = 0;
 
-float diffusion_constant = 1;
+float diffusion_constant = 0.0000001;
 float viscosity = 0.0001;
 float diffuse_iterations = 50; // 20-50
 float dissipate_iterations = 50;
