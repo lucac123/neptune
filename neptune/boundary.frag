@@ -10,14 +10,17 @@ uniform int scale;
 void main() {
 	vec2 size = textureSize(field);
 	vec2 offset = vec2(0,0);
-	if (texel.x == 0)
+	int scale_temp = scale;
+	if (texel.x < 1)
 		offset.x = 1;
-	else if (texel.x == size.x-1)
+	else if (texel.x > size.x-1)
 		offset.x = -1;
-	else if (texel.y == 0)
+	else if (texel.y < 1)
 		offset.y = 1;
-	else if (texel.y == size.y-1)
+	else if (texel.y > size.y-1)
 		offset.y = -1;
+	else
+		scale_temp = 1;
 
-	result = texture(field, texel + scale * offset).xy;
+	result = scale_temp * texture(field, texel + offset).xy;
 }

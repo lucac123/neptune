@@ -7,6 +7,13 @@ uniform sampler2DRect velocity;
 uniform sampler2DRect substance;
 
 void main() {
-	color = texture(substance, texel);
+	// VELOCITY
+	/*
+	color = 0.75 * normalize(texture(velocity, texel));
+	color.b = color.g;
+	color.g = 0.3*color.b;
+	//*/
 
+	// substance
+	color = texture(substance, texel);
 }

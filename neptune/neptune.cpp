@@ -16,19 +16,21 @@ const unsigned int WINDOW_HEIGHT = 1080;
 const unsigned int CELL_SIZE = 1;
 const unsigned int GRID_NUM[] = { 1920, 1080 };
 
-const float force_multiplier = 500;
-const float r_force_radius = 1.0 / 1000;
+const float force_multiplier = 1000;
+const float r_force_radius = 1.0 / 100;
 float force[2] = { 0,0 };
 
-const float splat_multiplier = 0.5;
+const float splat_multiplier = 10;
 const float r_splat_radius = 1.0 / 100;
 
 bool is_click = false;
 float mouse_x = 0;
 float mouse_y = 0;
 
+float diffusion_constant = 1;
 float viscosity = 0.0001;
 float diffuse_iterations = 50; // 20-50
+float dissipate_iterations = 50;
 
 float project_iterations = 80; // 40-80
 
@@ -183,7 +185,6 @@ int main() {
 		jacobi.use();
 		jacobi.setUniform("input_x", 0);
 		jacobi.setUniform("input_b", 0);
-		jacobi.setUniform("delta_time", delta_time);
 		float alpha = CELL_SIZE * CELL_SIZE / (viscosity * delta_time);
 		jacobi.setUniform("alpha", alpha);
 		jacobi.setUniform("r_beta", 1/(alpha + 4));
@@ -238,6 +239,25 @@ int main() {
 			runShader();
 		}
 
+		/*	shader: boundary		// Pressure
+		*		in - pressure0
+		*		out - pressure1		*/
+		//data_framebuffer.bindTexture(pressure1.getID());
+		//pressure0.bind();
+		//boundary.use();
+		//boundary.setUniform("field", 0);
+		//boundary.setUniform("scale", 1);
+		//runShader();
+		/*	shader: swap
+		*		in - pressure1
+		*		in - pressure0
+		*/
+		//data_framebuffer.bindTexture(pressure0.getID());
+		//pressure1.bind();
+		//swap.use();
+		//runShader();
+		
+
 		/*	shader: subtract_gradient
 		*		in - velocity0, pressure0
 		*		out - velocity1
@@ -251,7 +271,7 @@ int main() {
 		subtract_gradient.setUniform("r_cell_size", 1 / (float)CELL_SIZE);
 
 		runShader();
-		pressure0.unbind();
+		//pressure0.unbind();
 
 
 		/* Boundary
@@ -273,13 +293,8 @@ int main() {
 		swap.use();
 		//runShader();
 
-		/*	shader: boundary		// Pressure
-		*		in - pressure0
-		*		out - pressure1
-		*	shader: swap
-		*		in - pressure1
-		*		in - pressure0
-		*/
+		
+		
 
 	/** DYE **/
 		/* Add Source
@@ -304,6 +319,31 @@ int main() {
 		swap.use();
 		//runShader();
 
+		/* Diffuse
+		*	loop:
+		*		shader: jacobi
+		*			in - substance0
+		*			out - substance1
+		*		shader: jacobi
+		*			in - substance1
+		*			out - substance0
+		*/
+		jacobi.use();
+		jacobi.setUniform("input_x", 0);
+		jacobi.setUniform("input_b", 0);
+		alpha = CELL_SIZE * CELL_SIZE / (diffusion_constant * delta_time);
+		jacobi.setUniform("alpha", alpha);
+		jacobi.setUniform("r_beta", 1 / (4 + alpha));
+		for (int i = 0; i < dissipate_iterations / 2; i++) {
+			data_framebuffer.bindTexture(substance0.getID());
+			substance1.bind(GL_TEXTURE0);
+			runShader();
+
+			data_framebuffer.bindTexture(substance1.getID());
+			substance0.bind(GL_TEXTURE0);
+			runShader();
+		}
+
 		/* Advect
 		*	shader: advect
 		*		in - substance1
@@ -320,15 +360,7 @@ int main() {
 
 		runShader();
 
-		/* Diffuse
-		*	loop:
-		*		shader: jacobi
-		*			in - substance0
-		*			out - substance1
-		*		shader: jacobi
-		*			in - substance1
-		*			out - substance0
-		*/
+		
 
 	/** RENDER **/
 		/* Render
