@@ -9,12 +9,12 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 void mouse_callback(GLFWwindow* window, double x, double y);
 void processInput(GLFWwindow* window);
 
-const unsigned int WINDOW_WIDTH = 1920;
-const unsigned int WINDOW_HEIGHT = 1080;
+unsigned int WINDOW_WIDTH = 1080;
+unsigned int WINDOW_HEIGHT = 720;
 
 // SIM CONSTANTS
-const unsigned int CELL_SIZE = 1;
-const unsigned int GRID_NUM[] = { 1920, 1080 };
+const float CELL_SIZE = 10;
+const unsigned int GRID_NUM[] = { 1080, 720 };
 
 const float force_multiplier = 1000;
 const float r_force_radius = 1.0 / 100;
@@ -78,14 +78,23 @@ int main() {
 	Shader render("quad.vert", "render.frag");
 
 	/* SCREEN QUAD */
+	//float screen_quad[] = {
+	//	// position		texture
+	//	 1,	 1,			GRID_NUM[0],	GRID_NUM[1],
+	//	 1,	-1,			GRID_NUM[0],	0,
+	//	-1,	 1,			0,				GRID_NUM[1],
+	//	-1,	-1,			0,				0,
+	//	-1,	 1,			0,				GRID_NUM[1],
+	//	 1,	-1,			GRID_NUM[0],	0
+	//};
 	float screen_quad[] = {
 		// position		texture
-		 1,	 1,			GRID_NUM[0],	GRID_NUM[1],
-		 1,	-1,			GRID_NUM[0],	0,
-		-1,	 1,			0,				GRID_NUM[1],
-		-1,	-1,			0,				0,
-		-1,	 1,			0,				GRID_NUM[1],
-		 1,	-1,			GRID_NUM[0],	0,
+		 1,	 1,			1,	1,
+		 1,	-1,			1,	0,
+		-1,	 1,			0,	1,
+		-1,	-1,			0,	0,
+		-1,	 1,			0,	1,
+		 1,	-1,			1,	0
 	};
 
 	unsigned int quad_vertex_buffer, quad_vertex_array;
@@ -144,6 +153,7 @@ int main() {
 		data_framebuffer.bindTexture(velocity1.getID());
 		velocity0.bind();
 		add_force.use();
+		add_force.setUniform("size", (float)GRID_NUM[0], (float)GRID_NUM[1]);
 		add_force.setUniform("in_velocity", 0);
 		add_force.setUniform("delta_time", delta_time);
 		add_force.setUniform("is_force", is_click);
@@ -163,11 +173,15 @@ int main() {
 		data_framebuffer.bindTexture(velocity0.getID());
 		velocity1.bind();
 		advect.use();
+		advect.setUniform("size", (float)GRID_NUM[0], (float)GRID_NUM[1]);
 		advect.setUniform("in_quantity", 0);
 		advect.setUniform("velocity", 0);
 		advect.setUniform("delta_time", delta_time);
 
 		runShader();
+
+		
+
 
 		/* Diffuse
 		*	loop:
@@ -183,6 +197,7 @@ int main() {
 		*				beta - 4 + alpha
 		*/
 		jacobi.use();
+		jacobi.setUniform("size", (float)GRID_NUM[0], (float)GRID_NUM[1]);
 		jacobi.setUniform("input_x", 0);
 		jacobi.setUniform("input_b", 0);
 		float alpha = CELL_SIZE * CELL_SIZE / (viscosity * delta_time);
@@ -208,6 +223,7 @@ int main() {
 		data_framebuffer.bindTexture(velocity_div.getID());
 		velocity0.bind();
 		divergence.use();
+		divergence.setUniform("size", (float)GRID_NUM[0], (float)GRID_NUM[1]);
 		divergence.setUniform("v_field", 0);
 		divergence.setUniform("r_cell_size", 1 / (float)CELL_SIZE);
 		runShader();
@@ -225,6 +241,7 @@ int main() {
 
 		velocity_div.bind(GL_TEXTURE1);
 		jacobi.use();
+		jacobi.setUniform("size", (float)GRID_NUM[0], (float)GRID_NUM[1]);
 		jacobi.setUniform("input_x", 0);
 		jacobi.setUniform("input_b", 1);
 		jacobi.setUniform("alpha", (float) -1 * (CELL_SIZE * CELL_SIZE));
@@ -266,12 +283,22 @@ int main() {
 		velocity0.bind(GL_TEXTURE0);
 		pressure0.bind(GL_TEXTURE1);
 		subtract_gradient.use();
+		subtract_gradient.setUniform("size", (float)GRID_NUM[0], (float)GRID_NUM[1]);
 		subtract_gradient.setUniform("in_velocity", 0);
 		subtract_gradient.setUniform("in_pressure", 1);
 		subtract_gradient.setUniform("r_cell_size", 1 / (float)CELL_SIZE);
 
 		runShader();
 		//pressure0.unbind();
+
+		/*	shader: swap
+		*		in - velocity1
+		*		out - velocity0		*/
+		data_framebuffer.bindTexture(velocity0.getID());
+		velocity1.bind();
+		swap.use();
+		swap.setUniform("size", (float)GRID_NUM[0], (float)GRID_NUM[1]);
+		//runShader();
 
 
 		/* Boundary
@@ -281,18 +308,12 @@ int main() {
 		data_framebuffer.bindTexture(velocity0.getID());
 		velocity1.bind();
 		boundary.use();
+		boundary.setUniform("size", (float)GRID_NUM[0], (float)GRID_NUM[1]);
 		boundary.setUniform("field", 0);
 		boundary.setUniform("scale", -1);
 		runShader();
 
-		/*	shader: swap
-		*		in - velocity1
-		*		out - velocity0		*/
-		data_framebuffer.bindTexture(velocity0.getID());
-		velocity1.bind();
-		swap.use();
-		//runShader();
-
+		
 		
 		
 
@@ -305,6 +326,7 @@ int main() {
 		data_framebuffer.bindTexture(substance1.getID());
 		substance0.bind();
 		add_source.use();
+		add_source.setUniform("size", (float)GRID_NUM[0], (float)GRID_NUM[1]);
 		add_source.setUniform("in_substance", 0);
 		add_source.setUniform("time", current_frame);
 		add_source.setUniform("is_splat", is_click);
@@ -317,6 +339,7 @@ int main() {
 		data_framebuffer.bindTexture(substance0.getID());
 		substance1.bind();
 		swap.use();
+		swap.setUniform("size", (float)GRID_NUM[0], (float)GRID_NUM[1]);
 		//runShader();
 
 		/* Diffuse
@@ -329,6 +352,7 @@ int main() {
 		*			out - substance0
 		*/
 		jacobi.use();
+		jacobi.setUniform("size", (float)GRID_NUM[0], (float)GRID_NUM[1]);
 		jacobi.setUniform("input_x", 0);
 		jacobi.setUniform("input_b", 0);
 		alpha = CELL_SIZE * CELL_SIZE / (diffusion_constant * delta_time);
@@ -354,6 +378,7 @@ int main() {
 		velocity0.bind(GL_TEXTURE1);
 
 		advect.use();
+		advect.setUniform("size", (float)GRID_NUM[0], (float)GRID_NUM[1]);
 		advect.setUniform("in_quantity", 0);
 		advect.setUniform("velocity", 1);
 		advect.setUniform("delta_time", delta_time);
@@ -368,10 +393,11 @@ int main() {
 		*		in - velocity0, substance0
 		*/
 		data_framebuffer.unbind(); // back to default frame buffer
-		velocity0.bind(GL_TEXTURE0); // bind velocity 0 texture to TEXTURE0
+		velocity1.bind(GL_TEXTURE0); // bind velocity 0 texture to TEXTURE0
 		substance0.bind(GL_TEXTURE1);
 		
 		render.use();
+		render.setUniform("size", (float)WINDOW_WIDTH, (float)WINDOW_HEIGHT);
 		render.setUniform("velocity", 0); // set texture
 		render.setUniform("substance", 1);
 		runShader();
@@ -394,6 +420,8 @@ void processInput(GLFWwindow* window) {
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
+	WINDOW_WIDTH = width;
+	WINDOW_HEIGHT = height;
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {

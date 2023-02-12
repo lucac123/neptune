@@ -21,6 +21,7 @@ public:
 	void setUniform(const char* name, int value) const; //Samplers and integers, and booleans
 	void setUniform(const char* name, float value) const; //Floats
 	void setUniform(const char* name, float v1, float v2) const; //Float vector
+	void setUniform(const char* name, unsigned int v1, unsigned int v2) const;
 
 	unsigned int getID() const; //Returns the ID corresponding with this shader
 

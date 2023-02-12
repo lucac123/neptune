@@ -72,6 +72,9 @@ void Shader::setUniform(const char* name, float value) const {
 void Shader::setUniform(const char* name, float v1, float v2) const {
     glUniform2f(glGetUniformLocation(this->ID, name), v1, v2);
 }
+void Shader::setUniform(const char* name, unsigned int v1, unsigned int v2) const {
+    glUniform2ui(glGetUniformLocation(this->ID, name), v1, v2);
+}
 
 unsigned int Shader::getID() const {
     return this->ID;
