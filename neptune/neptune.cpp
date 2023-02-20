@@ -16,7 +16,7 @@ unsigned int WINDOW_HEIGHT = 1080;
 const float CELL_SIZE = 1;
 const unsigned int GRID_NUM[] = { 1280, 720 };
 
-const float force_multiplier = 1000;
+const float force_multiplier = 10000;
 const float r_force_radius = 1.0 / 100;
 float force[2] = { 0,0 };
 
@@ -27,7 +27,7 @@ bool is_click = false;
 float mouse_x = 0;
 float mouse_y = 0;
 
-float diffusion_constant = 0.0000001;
+float diffusion_constant = 0.0001;
 float viscosity = 0.0001;
 float diffuse_iterations = 50; // 20-50
 float dissipate_iterations = 50;
