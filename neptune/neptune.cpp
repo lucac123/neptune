@@ -27,8 +27,8 @@ bool is_click = false;
 float mouse_x = 0;
 float mouse_y = 0;
 
-float diffusion_constant = 0.0001;
-float viscosity = 0.0001;
+float diffusion_constant = 0.00007;
+float viscosity = 0.1;
 float diffuse_iterations = 50; // 20-50
 float dissipate_iterations = 50;
 

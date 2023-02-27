@@ -25,13 +25,13 @@ void main() {
 		scale_temp = 1;
 
 	//COLLIDER
-	float circ = pow(texel.x-size.x/2,2)+pow(texel.y-size.y/2,2);
-	if (circ < pow(30,2))
-		scale_temp = 0;
-	else if (circ == pow(30, 2)) {
-		offset = normalize(vec2(texel.x-size.x/2, texel.y-size.y/2));
-		scale_temp = scale;
-	}
+	//float circ = pow(texel.x-size.x/2,2)+pow(texel.y-size.y/2,2);
+	//if (circ < pow(30,2))
+	//	scale_temp = 0;
+	//else if (circ == pow(30, 2)) {
+	//	offset = normalize(vec2(texel.x-size.x/2, texel.y-size.y/2));
+	//	scale_temp = scale;
+	//}
 
 	result = scale_temp * texture(field, texel + offset).xy;
 }
