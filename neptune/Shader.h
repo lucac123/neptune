@@ -14,6 +14,7 @@ private:
 
 public:
 	Shader(const char* vert_path, const char* frag_path); //Constructor, generates shader using vertex and fragment shader source files.
+	~Shader(); //Destructor, clears memory from shader program
 
 	void use() const; //Sets OpenGL to use shader
 
