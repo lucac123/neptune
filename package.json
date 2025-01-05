@@ -4,17 +4,20 @@
   "description": "web based fluid simulation playground",
   "browserslist": "defaults",
   "scripts": {
+    "copy-shaders": "@powershell -NoProfile -ExecutionPolicy Unrestricted -Command Copy-Item src/shaders dist/shaders -recurse",
     "prebuild": "rimraf dist",
-    "build": "parcel build html/*.html",
+    "init": "npm run prebuild && npm run copy-shaders",
+    "build": "npm run init && parcel build html/*.html",
     "check": "tsc",
     "doc": "typedoc --entryPointStrategy expand src/ types/",
     "format": "prettier --write html/ src/ styles/",
-    "start": "parcel html/*.html"
+    "start": "npm run init && parcel html/*.html"
   },
   "author": "Luca Chackalackal",
   "license": "ISC",
   "devDependencies": {
     "@parcel/transformer-inline-string": "^2.12.0",
+    "@webgpu/types": "^0.1.52",
     "dotenv": "^16.4.5",
     "parcel": "^2.11.0",
     "prettier": "^3.3.3",
