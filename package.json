@@ -4,7 +4,7 @@
   "description": "web based fluid simulation playground",
   "browserslist": "defaults",
   "scripts": {
-    "copy-shaders": "@powershell -NoProfile -ExecutionPolicy Unrestricted -Command Copy-Item src/shaders dist/shaders -recurse",
+    "copy-shaders": "@powershell -NoProfile -ExecutionPolicy Unrestricted -Command Copy-Item src/neptune/shaders dist/shaders -recurse",
     "prebuild": "rimraf dist",
     "init": "npm run prebuild && npm run copy-shaders",
     "build": "npm run init && parcel build html/*.html",

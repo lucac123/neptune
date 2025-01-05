@@ -2,11 +2,33 @@
 <html>
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Web-based fluid simulation playground">
     <title>neptune</title>
     <link rel="stylesheet" href="/index.0243a6ab.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://code.iconify.design/iconify-icon/1.0.6/iconify-icon.min.js"></script>
     <script defer="" src="/index.b7a05eb9.js"></script>
   </head>
   <body>
-    <canvas></canvas>
+    <main>
+      <header>
+        <button id="dimension-toggle">
+          <iconify-icon icon="tabler:cube" aria-hidden="true" id="dimension-toggle-icon" data-alt="meteor-icons:rhombus"></iconify-icon>
+        </button>
+        <h1>neptune</h1>
+        <button id="settings-button">
+          <iconify-icon icon="material-symbols:settings-rounded" aria-hidden="true" id="settings-button-icon"></iconify-icon>
+        </button>
+      </header>
+      <footer>
+        <a href="https://github.com/lucac123" target="_blank" id="github-link">
+          github.com/lucac123
+        </a>
+      </footer>
+      <article id="sim-content"></article>
+    </main>
   </body>
 </html>
