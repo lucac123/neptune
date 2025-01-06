@@ -10,15 +10,9 @@
 type NeptuneOptions = {
   displayWidth: number;
   displayHeight: number;
-  dimensions: dimension;
-  resolution: resolution;
+  dimensions: number;
+  resolution: number[];
 };
-
-/**
- * Valid simulation dimensions
- */
-type dimension = 2 | 3;
-type resolution = [number, number] | [number, number, number];
 
 /**
  * A web component that simulates an interactible fluid simulation and renders
@@ -34,6 +28,8 @@ export class NeptuneComponent extends HTMLElement {
 
   private controller: AbortController | null = null;
 
+  private canvas: HTMLCanvasElement;
+
   /**
    * Constructs a new NeptuneComponent instance.
    *
@@ -45,11 +41,11 @@ export class NeptuneComponent extends HTMLElement {
 
     this.shadow = this.attachShadow({ mode: "open" });
 
-    const canvas = new HTMLCanvasElement();
-    canvas.width = options.displayWidth;
-    canvas.height = options.displayHeight;
+    this.canvas = document.createElement("canvas");
 
-    this.shadow.append(canvas);
+    this.setDisplaySize(options.displayWidth, options.displayHeight);
+
+    this.shadow.append(this.canvas);
   }
 
   /**
@@ -74,7 +70,20 @@ export class NeptuneComponent extends HTMLElement {
    *
    * @param dimension number of desired simulation dimensions
    */
-  public setDimension(dimension: dimension): void {}
+  public setDimension(dimension: number): void {
+    console.log(`Setting neptune dimensions to ${dimension}`);
+  }
+
+  /**
+   * Set the size of the canvas element.
+   *
+   * @param width The desired width
+   * @param height The desired height
+   */
+  public setDisplaySize(width: number, height: number): void {
+    this.canvas.width = width;
+    this.canvas.height = height;
+  }
 
   /**
    * Set the resolution of the simulation environment.
@@ -82,5 +91,5 @@ export class NeptuneComponent extends HTMLElement {
    * @param resolution the desired simulation resolution.
    * @throws an error if resolution.length != dimension
    */
-  public setResolution(resolution: resolution): void {}
+  public setResolution(resolution: number[]): void {}
 }

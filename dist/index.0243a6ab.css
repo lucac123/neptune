@@ -40,17 +40,18 @@ a {
   text-decoration: inherit;
   font-family: inherit;
   font-size: 15pt;
-  transition: font-size .1s;
+  transition: transform .1s;
 }
 
 a:hover {
   filter: brightness(.9);
-  font-size: 15.5pt;
+  transform: scale(1.05);
 }
 
 body {
   width: 100vw;
   height: 100vh;
+  overflow: hidden;
 }
 
 main {
@@ -75,7 +76,7 @@ footer {
   display: flex;
 }
 
-#sim-content {
+#component-container {
   z-index: -1;
   background-color: #502050;
   width: 100vw;

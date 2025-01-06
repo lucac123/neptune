@@ -10,11 +10,45 @@
  *  an application that fully leverages this pattern.
  */
 
+import { NeptuneComponent } from "./neptune/neptune";
+import { initView } from "./view";
+
+declare global {
+  interface DocumentEventMap {
+    toggleDimension: CustomEvent<void>;
+  }
+}
+
 /**
  * Program entry point
  */
 function main(): void {
-  console.log("Program execution began");
+  customElements.define("neptune-component", NeptuneComponent);
+
+  let dimensions = 2;
+
+  const neptuneOptions = {
+    displayWidth: window.innerWidth,
+    displayHeight: window.innerHeight,
+    dimensions: 2,
+    resolution: [window.innerWidth, window.innerHeight],
+  };
+
+  const neptune = new NeptuneComponent(neptuneOptions);
+  const view = initView(neptune);
+
+  document.addEventListener("toggleDimension", handleToggleDimension);
+  window.addEventListener("resize", handleWindowResize);
+
+  function handleToggleDimension(): void {
+    dimensions = dimensions === 2 ? 3 : 2;
+    neptune.setDimension(dimensions);
+    view.toggleDimension();
+  }
+
+  function handleWindowResize(): void {
+    neptune.setDisplaySize(window.innerWidth, window.innerHeight);
+  }
 }
 
 /**

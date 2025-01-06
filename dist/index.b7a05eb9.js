@@ -606,10 +606,34 @@ function hmrAccept(bundle /*: ParcelRequire */ , id /*: string */ ) {
  * Implements controller part of MVC architecture--though for this application the
  *  benefits of this design pattern are slim, it could be extended in the future to
  *  an application that fully leverages this pattern.
- */ /**
+ */ var _neptune = require("./neptune/neptune");
+var _view = require("./view");
+/**
  * Program entry point
  */ function main() {
-    console.log("Program execution began");
+    customElements.define("neptune-component", (0, _neptune.NeptuneComponent));
+    let dimensions = 2;
+    const neptuneOptions = {
+        displayWidth: window.innerWidth,
+        displayHeight: window.innerHeight,
+        dimensions: 2,
+        resolution: [
+            window.innerWidth,
+            window.innerHeight
+        ]
+    };
+    const neptune = new (0, _neptune.NeptuneComponent)(neptuneOptions);
+    const view = (0, _view.initView)(neptune);
+    document.addEventListener("toggleDimension", handleToggleDimension);
+    window.addEventListener("resize", handleWindowResize);
+    function handleToggleDimension() {
+        dimensions = dimensions === 2 ? 3 : 2;
+        neptune.setDimension(dimensions);
+        view.toggleDimension();
+    }
+    function handleWindowResize() {
+        neptune.setDisplaySize(window.innerWidth, window.innerHeight);
+    }
 }
 /**
  * Run main function after DOM fully loaded
@@ -617,6 +641,166 @@ function hmrAccept(bundle /*: ParcelRequire */ , id /*: string */ ) {
     main();
 });
 
-},{}]},["cAPdp","jeorp"], "jeorp", "parcelRequire94c2")
+},{"./neptune/neptune":"dWIaG","./view":"1ce4O"}],"dWIaG":[function(require,module,exports,__globalThis) {
+/**
+ * neptune.ts
+ *
+ * Defines neptune web component.
+ */ /**
+ * Object encapsulating all initialization options for the neptune simulation system.
+ */ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+/**
+ * A web component that simulates an interactible fluid simulation and renders
+ *  in real time.
+ * Provides a public-facing interface for setting simulation parameters
+ *
+ * Encapsulates all WebGPU API activity, handles user interactive input, simulation
+ *  and animation frame request, and renders result to a canvas element.
+ */ parcelHelpers.export(exports, "NeptuneComponent", ()=>NeptuneComponent);
+class NeptuneComponent extends HTMLElement {
+    // All html content is contained in this shadow root
+    shadow;
+    controller = null;
+    canvas;
+    /**
+   * Constructs a new NeptuneComponent instance.
+   *
+   * @param options a NeptuneOptions object containing information
+   * for initializing simulation environment.
+   */ constructor(options){
+        super();
+        this.shadow = this.attachShadow({
+            mode: "open"
+        });
+        this.canvas = document.createElement("canvas");
+        this.setDisplaySize(options.displayWidth, options.displayHeight);
+        this.shadow.append(this.canvas);
+    }
+    /**
+   * Once connected to the DOM, attach necessary event listeners.
+   */ connectedCallback() {
+        this.controller = new AbortController();
+        const options = {
+            signal: this.controller.signal
+        };
+    }
+    /**
+   * Clean up event listeners when disconnected from DOM.
+   */ disconnectedCallback() {
+        this.controller?.abort();
+        this.controller = null;
+    }
+    /**
+   * Set the dimensionality of the simulation environment.
+   * Must either be 2 or 3.
+   *
+   * @param dimension number of desired simulation dimensions
+   */ setDimension(dimension) {
+        console.log(`Setting neptune dimensions to ${dimension}`);
+    }
+    /**
+   * Set the size of the canvas element.
+   *
+   * @param width The desired width
+   * @param height The desired height
+   */ setDisplaySize(width, height) {
+        this.canvas.width = width;
+        this.canvas.height = height;
+    }
+    /**
+   * Set the resolution of the simulation environment.
+   *
+   * @param resolution the desired simulation resolution.
+   * @throws an error if resolution.length != dimension
+   */ setResolution(resolution) {}
+}
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"gkKU3":[function(require,module,exports,__globalThis) {
+exports.interopDefault = function(a) {
+    return a && a.__esModule ? a : {
+        default: a
+    };
+};
+exports.defineInteropFlag = function(a) {
+    Object.defineProperty(a, '__esModule', {
+        value: true
+    });
+};
+exports.exportAll = function(source, dest) {
+    Object.keys(source).forEach(function(key) {
+        if (key === 'default' || key === '__esModule' || Object.prototype.hasOwnProperty.call(dest, key)) return;
+        Object.defineProperty(dest, key, {
+            enumerable: true,
+            get: function() {
+                return source[key];
+            }
+        });
+    });
+    return dest;
+};
+exports.export = function(dest, destName, get) {
+    Object.defineProperty(dest, destName, {
+        enumerable: true,
+        get: get
+    });
+};
+
+},{}],"1ce4O":[function(require,module,exports,__globalThis) {
+/**
+ * view.ts
+ *
+ * View for the application
+ */ /**
+ * Factory to create and initialize the View.
+ *
+ * @param attachedComponent an arbitrary component to attach to view.
+ */ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "initView", ()=>initView);
+function initView(attachedComponent) {
+    // Extract the relevant HTML elements from our web page and ensure they are present and of the correct types
+    const dimensionToggleButton = document.querySelector("button#dimension-toggle");
+    if (!(dimensionToggleButton instanceof HTMLButtonElement)) throw new Error("Failed to find dimension toggle button, cannot initialize the View");
+    const componentContainer = document.querySelector("#component-container");
+    if (!(componentContainer instanceof HTMLElement)) throw new Error("Failed to find container for input web component");
+    componentContainer.append(attachedComponent);
+    return new View(dimensionToggleButton);
+}
+/**
+ * Dispatches events on user interaction.
+ * Provides a public interface for modifying the DOM based on user events.
+ *
+ * Also provides an attachment point for an arbitrary web component, which
+ * will sit in the DOM and may violate the MVC pattern
+ * (used for the simulation render loop)
+ */ class View {
+    // Elements
+    dimensionToggleButton;
+    /**
+   * Constructs a new View instance.
+   *
+   * @param button a button element to use for toggling dimensions
+   */ constructor(button){
+        this.dimensionToggleButton = button;
+        this.dimensionToggleButton.addEventListener("click", this.handleDimensionButtonClick.bind(this));
+    }
+    /**
+   * Switch dimension button icon with dataset alt
+   */ toggleDimension() {
+        const icon = this.dimensionToggleButton.querySelector("#dimension-toggle-icon");
+        if (!(icon instanceof HTMLElement)) throw new Error("Failed to get dimension icon");
+        icon.dataset;
+        const alt = icon.dataset.alt ?? "";
+        icon.dataset.alt = icon.getAttribute("icon") ?? "";
+        icon.setAttribute("icon", alt);
+    }
+    handleDimensionButtonClick() {
+        const toggleDimensionEvent = new CustomEvent("toggleDimension");
+        document.dispatchEvent(toggleDimensionEvent);
+    }
+}
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["cAPdp","jeorp"], "jeorp", "parcelRequire94c2")
 
 //# sourceMappingURL=index.b7a05eb9.js.map

@@ -45,16 +45,17 @@ a {
   text-decoration: inherit;
 
   transition: filter 1s;
-  transition: font-size 0.1s;
+  transition: transform 0.1s;
 }
 a:hover {
   filter: brightness(0.9);
-  font-size: 15.5pt;
+  transform: scale(1.05);
 }
 
 body {
   width: 100vw;
   height: 100vh;
+  overflow: hidden;
 }
 
 main {
@@ -81,7 +82,7 @@ footer {
   padding: 20px 100px;
 }
 
-#sim-content {
+#component-container {
   position: absolute;
   width: 100vw;
   height: 100vh;
