@@ -24,7 +24,6 @@ export function initView(attachedComponent: HTMLElement): View {
   if (!(componentContainer instanceof HTMLElement)) {
     throw new Error("Failed to find container for input web component");
   }
-
   componentContainer.append(attachedComponent);
 
   return new View(dimensionToggleButton);
@@ -66,14 +65,14 @@ class View {
     if (!(icon instanceof HTMLElement)) {
       throw new Error("Failed to get dimension icon");
     }
-
-    icon.dataset;
-
     const alt = icon.dataset.alt ?? "";
     icon.dataset.alt = icon.getAttribute("icon") ?? "";
     icon.setAttribute("icon", alt);
   }
 
+  /**
+   * Handle a click on the dimension toggle button.
+   */
   private handleDimensionButtonClick(): void {
     const toggleDimensionEvent = new CustomEvent("toggleDimension");
 

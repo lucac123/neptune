@@ -12,6 +12,7 @@ type NeptuneOptions = {
   displayHeight: number;
   dimensions: number;
   resolution: number[];
+  cellSize: number;
 };
 
 /**
@@ -21,6 +22,13 @@ type NeptuneOptions = {
  *
  * Encapsulates all WebGPU API activity, handles user interactive input, simulation
  *  and animation frame request, and renders result to a canvas element.
+ *
+ * The neptune system consists of four layers, each of which it creates and applies:
+ *
+ * * input layer
+ *      the input layer recieves user interaction events (i.e. mouse down, mouse up, and mouse move), and
+ *  corresponding coordinates. It is then responsible for converting those screen space mouse coordinates
+ *  into world space coordinates
  */
 export class NeptuneComponent extends HTMLElement {
   // All html content is contained in this shadow root

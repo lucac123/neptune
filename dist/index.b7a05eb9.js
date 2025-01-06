@@ -620,18 +620,24 @@ var _view = require("./view");
         resolution: [
             window.innerWidth,
             window.innerHeight
-        ]
+        ],
+        cellSize: 1
     };
     const neptune = new (0, _neptune.NeptuneComponent)(neptuneOptions);
     const view = (0, _view.initView)(neptune);
     document.addEventListener("toggleDimension", handleToggleDimension);
     window.addEventListener("resize", handleWindowResize);
-    function handleToggleDimension() {
+    /**
+   * Handle a toggleDimension event from the view.
+   * Should toggle between 2 and 3 dimensions
+   */ function handleToggleDimension() {
         dimensions = dimensions === 2 ? 3 : 2;
         neptune.setDimension(dimensions);
         view.toggleDimension();
     }
-    function handleWindowResize() {
+    /**
+   * Handle browser resize, updating simulation environment as needed
+   */ function handleWindowResize() {
         neptune.setDisplaySize(window.innerWidth, window.innerHeight);
     }
 }
@@ -657,6 +663,13 @@ parcelHelpers.defineInteropFlag(exports);
  *
  * Encapsulates all WebGPU API activity, handles user interactive input, simulation
  *  and animation frame request, and renders result to a canvas element.
+ *
+ * The neptune system consists of four layers, each of which it creates and applies:
+ *
+ * * input layer
+ *      the input layer recieves user interaction events (i.e. mouse down, mouse up, and mouse move), and
+ *  corresponding coordinates. It is then responsible for converting those screen space mouse coordinates
+ *  into world space coordinates
  */ parcelHelpers.export(exports, "NeptuneComponent", ()=>NeptuneComponent);
 class NeptuneComponent extends HTMLElement {
     // All html content is contained in this shadow root
@@ -790,12 +803,13 @@ function initView(attachedComponent) {
    */ toggleDimension() {
         const icon = this.dimensionToggleButton.querySelector("#dimension-toggle-icon");
         if (!(icon instanceof HTMLElement)) throw new Error("Failed to get dimension icon");
-        icon.dataset;
         const alt = icon.dataset.alt ?? "";
         icon.dataset.alt = icon.getAttribute("icon") ?? "";
         icon.setAttribute("icon", alt);
     }
-    handleDimensionButtonClick() {
+    /**
+   * Handle a click on the dimension toggle button.
+   */ handleDimensionButtonClick() {
         const toggleDimensionEvent = new CustomEvent("toggleDimension");
         document.dispatchEvent(toggleDimensionEvent);
     }

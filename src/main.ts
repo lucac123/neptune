@@ -32,6 +32,7 @@ function main(): void {
     displayHeight: window.innerHeight,
     dimensions: 2,
     resolution: [window.innerWidth, window.innerHeight],
+    cellSize: 1,
   };
 
   const neptune = new NeptuneComponent(neptuneOptions);
@@ -40,12 +41,19 @@ function main(): void {
   document.addEventListener("toggleDimension", handleToggleDimension);
   window.addEventListener("resize", handleWindowResize);
 
+  /**
+   * Handle a toggleDimension event from the view.
+   * Should toggle between 2 and 3 dimensions
+   */
   function handleToggleDimension(): void {
     dimensions = dimensions === 2 ? 3 : 2;
     neptune.setDimension(dimensions);
     view.toggleDimension();
   }
 
+  /**
+   * Handle browser resize, updating simulation environment as needed
+   */
   function handleWindowResize(): void {
     neptune.setDisplaySize(window.innerWidth, window.innerHeight);
   }
