@@ -56,18 +56,27 @@ class View {
   }
 
   /**
-   * Switch dimension button icon with dataset alt
+   * Set dimension button icon
+   *
+   * @param dimension number of dimensions
    */
-  public toggleDimension(): void {
+  public setDimension(dimension: 2 | 3): void {
     const icon = this.dimensionToggleButton.querySelector(
       "#dimension-toggle-icon"
     );
     if (!(icon instanceof HTMLElement)) {
       throw new Error("Failed to get dimension icon");
     }
-    const alt = icon.dataset.alt ?? "";
-    icon.dataset.alt = icon.getAttribute("icon") ?? "";
-    icon.setAttribute("icon", alt);
+
+    let iconValue: string;
+
+    if (dimension == 2) {
+      iconValue = icon.dataset.icon3d ?? "";
+    } else {
+      iconValue = icon.dataset.icon2d ?? "";
+    }
+
+    icon.setAttribute("icon", iconValue);
   }
 
   /**

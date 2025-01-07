@@ -10,7 +10,8 @@
  *  an application that fully leverages this pattern.
  */
 
-import { NeptuneComponent, vec2, vec3 } from "./neptune/neptuneComponent";
+import { Controller, vec2, vec3 } from "./controller";
+import { NeptuneComponent } from "./neptune/neptuneComponent";
 import { initView } from "./view";
 
 declare global {
@@ -22,49 +23,30 @@ declare global {
 /**
  * Program entry point
  */
-function main(): void {
+async function main(): Promise<void> {
   customElements.define("neptune-component", NeptuneComponent);
 
-  let dimensions = 2;
-
   const displaySize: vec2 = [window.innerWidth, window.innerHeight];
-
-  const resolution2d: vec2 = [
-    Math.ceil(displaySize[0]) / 100,
-    Math.ceil(displaySize[1]) / 100,
-  ];
+  // const resolution2d: vec2 = [
+  //   Math.ceil(displaySize[0]) / 100,
+  //   Math.ceil(displaySize[1]) / 100,
+  // ];
   const resolution3d: vec3 = [256, 256, 256];
 
-  const neptuneOptions = {
+  const options = {
     displaySize: displaySize,
-    dimensions: 2,
-    resolution2d: resolution2d,
+    // resolution2d: resolution2d,
     resolution3d: resolution3d,
     cellSize: 1,
   };
 
-  const neptune = new NeptuneComponent(neptuneOptions, loadResource);
+  const neptune = new NeptuneComponent(options);
   const view = initView(neptune);
 
-  document.addEventListener("toggleDimension", handleToggleDimension);
-  window.addEventListener("resize", handleWindowResize);
+  await neptune.initialize();
 
-  /**
-   * Handle a toggleDimension event from the view.
-   * Should toggle between 2 and 3 dimensions
-   */
-  function handleToggleDimension(): void {
-    dimensions = dimensions === 2 ? 3 : 2;
-    neptune.setDimension(dimensions);
-    view.toggleDimension();
-  }
-
-  /**
-   * Handle browser resize, updating simulation environment as needed
-   */
-  function handleWindowResize(): void {
-    neptune.resize([window.innerWidth, window.innerHeight]);
-  }
+  const controller = new Controller(view, neptune);
+  await controller.connect();
 }
 
 /**
