@@ -86,6 +86,6 @@ footer {
   position: absolute;
   width: 100vw;
   height: 100vh;
-  background-color: #502050;
+  /* background-color: #502050; */
   z-index: -1;
 }

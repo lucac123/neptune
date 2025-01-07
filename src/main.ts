@@ -10,7 +10,7 @@
  *  an application that fully leverages this pattern.
  */
 
-import { NeptuneComponent } from "./neptune/neptune";
+import { NeptuneComponent, vec2, vec3 } from "./neptune/neptune";
 import { initView } from "./view";
 
 declare global {
@@ -27,15 +27,23 @@ function main(): void {
 
   let dimensions = 2;
 
+  const displaySize: vec2 = [window.innerWidth, window.innerHeight];
+
+  const resolution2d: vec2 = [
+    Math.ceil(displaySize[0]) / 100,
+    Math.ceil(displaySize[1]) / 100,
+  ];
+  const resolution3d: vec3 = [256, 256, 256];
+
   const neptuneOptions = {
-    displayWidth: window.innerWidth,
-    displayHeight: window.innerHeight,
+    displaySize: displaySize,
     dimensions: 2,
-    resolution: [window.innerWidth, window.innerHeight],
+    resolution2d: resolution2d,
+    resolution3d: resolution3d,
     cellSize: 1,
   };
 
-  const neptune = new NeptuneComponent(neptuneOptions);
+  const neptune = new NeptuneComponent(neptuneOptions, loadResource);
   const view = initView(neptune);
 
   document.addEventListener("toggleDimension", handleToggleDimension);
@@ -55,7 +63,19 @@ function main(): void {
    * Handle browser resize, updating simulation environment as needed
    */
   function handleWindowResize(): void {
-    neptune.setDisplaySize(window.innerWidth, window.innerHeight);
+    neptune.resize([window.innerWidth, window.innerHeight]);
+  }
+}
+
+/**
+ * Load code from external file
+ */
+async function loadResource(resourceName: string): Promise<string> {
+  try {
+    const response = await fetch(`${resourceName}`);
+    return await response.text();
+  } catch {
+    throw new Error(`Failed to load shader ${resourceName}`);
   }
 }
 

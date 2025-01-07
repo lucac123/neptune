@@ -78,7 +78,6 @@ footer {
 
 #component-container {
   z-index: -1;
-  background-color: #502050;
   width: 100vw;
   height: 100vh;
   position: absolute;
