@@ -10,7 +10,7 @@
  *  an application that fully leverages this pattern.
  */
 
-import { NeptuneComponent, vec2, vec3 } from "./neptune/neptune";
+import { NeptuneComponent, vec2, vec3 } from "./neptune/neptuneComponent";
 import { initView } from "./view";
 
 declare global {

@@ -47,8 +47,8 @@ export class SimulationState {
 
   public resize(newResolution: vec2) {
     // TODO implement this
-    throw new Error(
-      "SimulationState does not currently support dynamic resizing"
-    );
+    // throw new Error(
+    //   "SimulationState does not currently support dynamic resizing"
+    // );
   }
 }
