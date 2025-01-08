@@ -5,6 +5,8 @@
 
   font-family: "Quicksand";
   color: white;
+
+  user-select: none;
 }
 
 body {
@@ -12,6 +14,7 @@ body {
 }
 
 button {
+  pointer-events: auto;
   color: inherit;
   font-family: inherit;
   font-size: 20pt;
@@ -39,6 +42,7 @@ h1 {
 }
 
 a {
+  pointer-events: auto;
   font-family: inherit;
   font-size: 15pt;
   color: #aaaaaa;
@@ -53,6 +57,7 @@ a:hover {
 }
 
 body {
+  position: relative;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
@@ -66,6 +71,7 @@ main {
 }
 
 header {
+  pointer-events: none;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -73,13 +79,16 @@ header {
   padding: 0 100px;
 
   height: 100px;
+  z-index: 1;
 }
 
 footer {
+  pointer-events: none;
   display: flex;
   justify-content: end;
   align-items: center;
   padding: 20px 100px;
+  z-index: 1;
 }
 
 #component-container {
@@ -87,5 +96,4 @@ footer {
   width: 100vw;
   height: 100vh;
   /* background-color: #502050; */
-  z-index: -1;
 }

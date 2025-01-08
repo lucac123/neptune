@@ -4,7 +4,14 @@
  * Defines neptune web component.
  */
 
+import { Camera2D } from "./camera2D";
+import { InputProcessor2D } from "./inputProcessor2D";
+import { Mesh2D } from "./mesh2D";
 import { Neptune } from "./neptune";
+import { Renderer2D } from "./renderer2D";
+import { Simulator2D } from "./simulator2D";
+import { State2D } from "./state2D";
+import { SubstanceCreator2D } from "./substanceCreator2D";
 
 /**
  * Object encapsulating all initialization options for the neptune simulation system.
@@ -84,6 +91,11 @@ export class NeptuneComponent extends HTMLElement {
     );
     this.canvas.addEventListener(
       "mouseup",
+      this.handleMouseUp.bind(this),
+      options
+    );
+    this.canvas.addEventListener(
+      "mouseleave",
       this.handleMouseUp.bind(this),
       options
     );
@@ -183,13 +195,35 @@ export class NeptuneComponent extends HTMLElement {
     }
   }
 
-  private async createNeptuneSystem(): Promise<null> {
+  private async createNeptuneSystem(): Promise<Neptune> {
     if (!this.dimensions) {
       throw new Error(
         "NeptuneComponent dimensions must be set before a call to initializeSystem"
       );
     }
-    return null;
+    if (this.dimensions == 2) {
+      // Create 2d neptune system
+      const camera = new Camera2D();
+      const state = new State2D();
+      const substanceLayer = new SubstanceCreator2D();
+      const inputLayer = new InputProcessor2D(substanceLayer, camera);
+      const simulationLayer = new Simulator2D();
+      const meshLayer = new Mesh2D();
+      const renderLayer = new Renderer2D();
+
+      return new Neptune(
+        inputLayer,
+        substanceLayer,
+        simulationLayer,
+        meshLayer,
+        renderLayer,
+        camera,
+        state
+      );
+    } else {
+      // Create 3d neptune system
+      throw new Error("currently unable to create 3d system");
+    }
   }
 
   /**
