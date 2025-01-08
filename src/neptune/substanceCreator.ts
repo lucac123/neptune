@@ -1,3 +1,5 @@
-export class SubstanceCreator {
+interface State {}
+
+export class SubstanceCreator2D {
   constructor() {}
 }

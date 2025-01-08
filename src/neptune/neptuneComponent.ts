@@ -220,6 +220,10 @@ export class NeptuneComponent extends HTMLElement {
     const mouseX = event.clientX - canvasRect.left;
     const mouseY = event.clientY - canvasRect.top;
 
-    this.neptune?.mouseMove(mouseX, mouseY, event.altKey);
+    this.neptune?.mouseMove(
+      mouseX / this.canvas.width,
+      mouseY / this.canvas.height,
+      event.altKey
+    );
   }
 }

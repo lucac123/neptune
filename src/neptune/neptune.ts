@@ -8,9 +8,8 @@
  * Interface for a general user input processor
  */
 interface InputProcessor {
-  setMouseDown(): void;
-  setMouseUp(): void;
-  setMousePosition(x: number, y: number): void;
+  setClick(clickStatus: boolean): void;
+  setPosition(u: number, v: number): void;
   setModifier(modifierStatus: boolean): void;
 
   release(): void;
@@ -126,7 +125,7 @@ export class Neptune {
    * @param modifier
    */
   public mouseDown(modifier: boolean): void {
-    this.inputLayer.setMouseDown();
+    this.inputLayer.setClick(true);
     this.inputLayer.setModifier(modifier);
   }
 
@@ -135,18 +134,18 @@ export class Neptune {
    * @param modifier
    */
   public mouseUp(modifier: boolean): void {
-    this.inputLayer.setMouseUp();
+    this.inputLayer.setClick(false);
     this.inputLayer.setModifier(modifier);
   }
 
   /**
    * Handle a user mouse move
-   * @param mouseX
-   * @param mouseY
+   * @param mouseU screen space coords 0 = left, 1 = right
+   * @param mouseV screen space coords 0 = top, 1 = bottom
    * @param modifier
    */
-  public mouseMove(mouseX: number, mouseY: number, modifier: boolean): void {
-    this.inputLayer.setMousePosition(mouseX, mouseY);
+  public mouseMove(mouseU: number, mouseV: number, modifier: boolean): void {
+    this.inputLayer.setPosition(mouseU, mouseV);
     this.inputLayer.setModifier(modifier);
   }
 

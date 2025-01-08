@@ -1,7 +1,7 @@
 type vec2 = [number, number];
 type vec3 = [number, number, number];
 
-export class SimulationState {
+export class State {
   private dimensions: number;
   private resolution: vec2 | vec3;
   private device: GPUDevice;
