@@ -103,7 +103,7 @@ export class SubstanceCreator2D {
     velocityField: FieldManager
   ): void {
     if (this.shouldCreate) {
-      this.updateUniforms();
+      this.updateUniforms(deltaTime);
 
       this.device.queue.writeBuffer(
         this.substanceUniform.uniformBuffer,
@@ -162,12 +162,12 @@ export class SubstanceCreator2D {
     this.velocityUniform.uniformBuffer.destroy();
   }
 
-  private updateUniforms(): void {
-    this.updateSubstanceUniforms();
-    this.updateVelocityUniforms();
+  private updateUniforms(deltaTime: number): void {
+    this.updateSubstanceUniforms(deltaTime);
+    this.updateVelocityUniforms(deltaTime);
   }
 
-  private updateSubstanceUniforms(): void {
+  private updateSubstanceUniforms(deltaTime: number): void {
     if (!this.position)
       throw new Error("Error in substance creation, improperly initialized");
 
@@ -181,11 +181,14 @@ export class SubstanceCreator2D {
     const green = (Math.sin(time + (2 * Math.PI) / 3) + 1) / 3;
     const blue = (Math.sin(time + (4 * Math.PI) / 3) + 1) / 3;
 
-    this.substanceUniform.amount[0] = this.substanceAmount * red;
-    this.substanceUniform.amount[1] = this.substanceAmount * green;
-    this.substanceUniform.amount[2] = this.substanceAmount * blue;
+    this.substanceUniform.amount[0] =
+      deltaTime * 0.001 * this.substanceAmount * red;
+    this.substanceUniform.amount[1] =
+      deltaTime * 0.001 * this.substanceAmount * green;
+    this.substanceUniform.amount[2] =
+      deltaTime * 0.001 * this.substanceAmount * blue;
   }
-  private updateVelocityUniforms(): void {
+  private updateVelocityUniforms(deltaTime: number): void {
     if (!this.position || !this.force)
       throw new Error("Error in substance creation, improperly initialized");
 
@@ -194,8 +197,10 @@ export class SubstanceCreator2D {
 
     this.velocityUniform.radius[0] = this.radius;
 
-    this.velocityUniform.amount[0] = this.force[0] / this.mass;
-    this.velocityUniform.amount[1] = this.force[1] / this.mass;
+    this.velocityUniform.amount[0] =
+      (deltaTime * 0.001 * this.force[0]) / this.mass;
+    this.velocityUniform.amount[1] =
+      (deltaTime * 0.001 * this.force[1]) / this.mass;
   }
 
   private createInputUniforms(): inputUniform {

@@ -234,10 +234,11 @@ export class NeptuneComponent extends HTMLElement {
         fieldStart,
         fieldDiagonal,
         this.options.resolution2d ?? this.options.displaySize
+        // [100, 100]
       );
       const substanceLayer = new SubstanceCreator2D(this.device);
       const inputLayer = new InputProcessor2D(substanceLayer, camera);
-      const simulationLayer = new Simulator2D();
+      const simulationLayer = new Simulator2D(this.device);
       const meshLayer = new Mesh2D(this.device, planeStart, planeSize);
       const renderLayer = new Renderer2D(this.device, this.canvasFormat);
 

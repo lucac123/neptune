@@ -51,9 +51,18 @@ fn vertexMain(@location(0) pos: vec2f) -> VertexOut {
 @group(2) @binding(0) var<storage, read> field: Field2D;
 @fragment
 fn fragmentMain(vertexOut: VertexOut) -> @location(0) vec4f {
+    let fieldValue = getFieldValue(vertexOut.worldPosition);
+
+    // if (length(fieldValue) > 0.001) {
+    //     return vec4f(1);
+    // }
+    // else {
+    //     return vec4f(0,0,0,1);
+    // }
+
     return vec4f(
-        getFieldValue(vertexOut.worldPosition), 
-        // 0, vec2f(field.resolution)-10, 
+        // fieldValue, 
+        10*vec3f(length(fieldValue)), 
         1,
     );
 }
