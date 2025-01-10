@@ -1,4 +1,4 @@
-interface State {}
+interface FieldManager {}
 interface Camera {}
 
 const PLANE_VERTICES = new Float32Array([
@@ -75,7 +75,7 @@ export class Renderer {
   public render(
     renderView: GPUTextureView,
     dimensions: number,
-    state: State,
+    fieldManager: FieldManager,
     camera: Camera
   ) {
     const encoder = this.device.createCommandEncoder();

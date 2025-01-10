@@ -10,7 +10,7 @@ import { Mesh2D } from "./mesh2D";
 import { Neptune } from "./neptune";
 import { Renderer2D } from "./renderer2D";
 import { Simulator2D } from "./simulator2D";
-import { State2D } from "./state2D";
+import { FieldManager2D as FieldManager2D } from "./fieldManager2D";
 import { SubstanceCreator2D } from "./substanceCreator2D";
 
 /**
@@ -44,7 +44,7 @@ export class NeptuneComponent extends HTMLElement {
 
   private controller: AbortController | null = null;
 
-  private options: NeptuneOptions;
+  private options: NeptuneOptions | null = null;
   private dimensions: 2 | 3 | null = null;
 
   // Indicates that initialization is complete and system is ready to render.
@@ -52,10 +52,13 @@ export class NeptuneComponent extends HTMLElement {
 
   private canvas: HTMLCanvasElement;
   private device: GPUDevice | null = null;
-  private canvasView: GPUTextureView | null = null;
+  private canvasFormat: GPUTextureFormat | null = null;
+  private context: GPUCanvasContext | null = null;
 
   // Used to calculate deltaTime
   private lastTime: DOMHighResTimeStamp | null = null;
+
+  private frameRate: number = 0;
 
   // Neptune system
   private neptune: Neptune | null = null;
@@ -63,13 +66,9 @@ export class NeptuneComponent extends HTMLElement {
   /**
    * Constructs a new NeptuneComponent instance.
    *
-   * @param options a NeptuneOptions object containing information
-   * for initializing simulation environment.
    */
-  constructor(options: NeptuneOptions) {
+  constructor() {
     super();
-
-    this.options = options;
 
     this.shadow = this.attachShadow({ mode: "open" });
     this.canvas = document.createElement("canvas");
@@ -125,13 +124,14 @@ export class NeptuneComponent extends HTMLElement {
       // Not first frame, render if ready
       if (this.ready) {
         const deltaTime = timestamp - this.lastTime;
+        this.frameRate = 1000 / deltaTime;
         this.neptune?.step(deltaTime);
-        if (!this.canvasView) {
+        if (!this.context) {
           throw new Error(
-            "Error, view not defined even though ready flag is set"
+            "Error, context not defined even though ready flag is set"
           );
         }
-        this.neptune?.render(this.canvasView);
+        this.neptune?.render(this.context.getCurrentTexture().createView());
       }
     }
     this.lastTime = timestamp;
@@ -141,7 +141,8 @@ export class NeptuneComponent extends HTMLElement {
   /**
    * Initialize the GPU system and the canvas context.
    */
-  public async initialize(): Promise<void> {
+  public async initialize(options: NeptuneOptions): Promise<void> {
+    this.options = options;
     if (!navigator.gpu) {
       throw new Error("WebGPU Not supported in this browser");
     }
@@ -156,21 +157,19 @@ export class NeptuneComponent extends HTMLElement {
       throw new Error("No appropriate GPUDevice foujnd.");
     }
 
-    const context = this.canvas.getContext("webgpu");
-    if (!context) {
+    this.context = this.canvas.getContext("webgpu");
+    if (!this.context) {
       throw new Error("Failed to get webgpu context from canvas element");
     }
 
-    const canvasFormat = navigator.gpu.getPreferredCanvasFormat();
-    context.configure({
+    this.canvasFormat = navigator.gpu.getPreferredCanvasFormat();
+    this.context.configure({
       device: this.device,
-      format: canvasFormat,
+      format: this.canvasFormat,
     });
 
     this.canvas.width = this.options.displaySize[0];
     this.canvas.height = this.options.displaySize[1];
-
-    this.canvasView = context.getCurrentTexture().createView();
   }
 
   /**
@@ -195,21 +194,52 @@ export class NeptuneComponent extends HTMLElement {
     }
   }
 
+  public getFrameRate(): number {
+    return this.frameRate;
+  }
+
   private async createNeptuneSystem(): Promise<Neptune> {
-    if (!this.dimensions) {
-      throw new Error(
-        "NeptuneComponent dimensions must be set before a call to initializeSystem"
-      );
+    if (
+      !this.device ||
+      !this.dimensions ||
+      !this.canvasFormat ||
+      !this.options
+    ) {
+      throw new Error("Cannot create neptune system before initialization");
     }
     if (this.dimensions == 2) {
+      const aspect = this.options.displaySize[0] / this.options.displaySize[1];
+
+      const size = 10;
+      const planeHeight = size / aspect;
+      const planeStart: vec2 = [-size / 2, -planeHeight / 2];
+      const planeSize: vec2 = [size, planeHeight];
+
+      const cameraStart: vec2 = planeStart;
+      const cameraDiagonal: vec2 = planeSize;
+
+      const fieldStart: vec2 = planeStart;
+      const fieldDiagonal: vec2 = planeSize;
+
       // Create 2d neptune system
-      const camera = new Camera2D();
-      const state = new State2D();
-      const substanceLayer = new SubstanceCreator2D();
+      const camera = new Camera2D(this.device, cameraStart, cameraDiagonal);
+      const substanceField = new FieldManager2D(
+        this.device,
+        fieldStart,
+        fieldDiagonal,
+        this.options.resolution2d ?? this.options.displaySize
+      );
+      const velocityField = new FieldManager2D(
+        this.device,
+        fieldStart,
+        fieldDiagonal,
+        this.options.resolution2d ?? this.options.displaySize
+      );
+      const substanceLayer = new SubstanceCreator2D(this.device);
       const inputLayer = new InputProcessor2D(substanceLayer, camera);
       const simulationLayer = new Simulator2D();
-      const meshLayer = new Mesh2D();
-      const renderLayer = new Renderer2D();
+      const meshLayer = new Mesh2D(this.device, planeStart, planeSize);
+      const renderLayer = new Renderer2D(this.device, this.canvasFormat);
 
       return new Neptune(
         inputLayer,
@@ -218,7 +248,8 @@ export class NeptuneComponent extends HTMLElement {
         meshLayer,
         renderLayer,
         camera,
-        state
+        substanceField,
+        velocityField
       );
     } else {
       // Create 3d neptune system

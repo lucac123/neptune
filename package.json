@@ -6,7 +6,7 @@
   "scripts": {
     "copy-shaders": "@powershell -NoProfile -ExecutionPolicy Unrestricted -Command Copy-Item src/neptune/shaders dist/shaders -recurse",
     "prebuild": "rimraf dist",
-    "init": "npm run prebuild && npm run copy-shaders",
+    "init": "npm run prebuild",
     "build": "npm run init && parcel build html/*.html",
     "check": "tsc",
     "doc": "typedoc --entryPointStrategy expand src/ types/",
@@ -17,6 +17,8 @@
   "license": "ISC",
   "devDependencies": {
     "@parcel/transformer-inline-string": "^2.12.0",
+    "@parcel/transformer-raw": "^2.13.3",
+    "@webgpu/types": "^0.1.52",
     "dotenv": "^16.4.5",
     "parcel": "^2.11.0",
     "prettier": "^3.3.3",

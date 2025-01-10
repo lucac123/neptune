@@ -6,10 +6,8 @@
 
 /**
  * Factory to create and initialize the View.
- *
- * @param attachedComponent an arbitrary component to attach to view.
  */
-export function initView(attachedComponent: HTMLElement): View {
+export function initView(): View {
   // Extract the relevant HTML elements from our web page and ensure they are present and of the correct types
   const dimensionToggleButton = document.querySelector(
     "button#dimension-toggle"
@@ -20,13 +18,12 @@ export function initView(attachedComponent: HTMLElement): View {
     );
   }
 
-  const componentContainer = document.querySelector("#component-container");
-  if (!(componentContainer instanceof HTMLElement)) {
-    throw new Error("Failed to find container for input web component");
+  const frameRate = document.querySelector("p#framerate");
+  if (!(frameRate instanceof HTMLParagraphElement)) {
+    throw new Error("Failed to find framerate element in html");
   }
-  componentContainer.append(attachedComponent);
 
-  return new View(dimensionToggleButton);
+  return new View(dimensionToggleButton, frameRate);
 }
 
 /**
@@ -40,14 +37,16 @@ export function initView(attachedComponent: HTMLElement): View {
 class View {
   // Elements
   dimensionToggleButton: HTMLButtonElement;
+  frameRate: HTMLParagraphElement;
 
   /**
    * Constructs a new View instance.
    *
    * @param button a button element to use for toggling dimensions
    */
-  constructor(button: HTMLButtonElement) {
+  constructor(button: HTMLButtonElement, frameRate: HTMLParagraphElement) {
     this.dimensionToggleButton = button;
+    this.frameRate = frameRate;
 
     this.dimensionToggleButton.addEventListener(
       "click",
@@ -77,6 +76,10 @@ class View {
     }
 
     icon.setAttribute("icon", iconValue);
+  }
+
+  public setFrameRate(frameRate: number) {
+    this.frameRate.innerText = frameRate.toFixed(2) + " FPS";
   }
 
   /**

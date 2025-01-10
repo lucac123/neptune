@@ -40,25 +40,14 @@ async function main(): Promise<void> {
     cellSize: 1,
   };
 
-  const neptune = new NeptuneComponent(options);
-  const view = initView(neptune);
-
-  await neptune.initialize();
+  const neptune = document.querySelector("neptune-component");
+  if (!(neptune instanceof NeptuneComponent)) {
+    throw new Error("Invalid neptune component");
+  }
+  const view = initView();
 
   const controller = new Controller(view, neptune);
-  await controller.connect();
-}
-
-/**
- * Load code from external file
- */
-async function loadResource(resourceName: string): Promise<string> {
-  try {
-    const response = await fetch(`${resourceName}`);
-    return await response.text();
-  } catch {
-    throw new Error(`Failed to load shader ${resourceName}`);
-  }
+  await controller.connect(options);
 }
 
 /**

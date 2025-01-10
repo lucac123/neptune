@@ -16,10 +16,10 @@ interface SubstanceCreator2D {
 type vec2 = [number, number];
 
 /**
- * Process user input for 2D scene, influencing state through
+ * Process user input for 2D scene, influencing field through
  * SubstanceCreator
  *
- * Maintains mouse position, uses it to influence force added to state.
+ * Maintains mouse position, uses it to influence force added to field.
  */
 export class InputProcessor2D {
   private mousePosition: vec2 | null = null;
@@ -62,9 +62,9 @@ export class InputProcessor2D {
     this.mousePosition = newMousePosition;
   }
 
-  /**
-   ** EMPTY FUNCTIONS TO SATISFY INTERFACES
-   */
-  public setModifier(modifier: boolean) {}
-  public release(): void {}
+  // /**
+  //  ** EMPTY FUNCTIONS TO SATISFY INTERFACES
+  //  */
+  // public setModifier(modifier: boolean) {}
+  // public release(): void {}
 }

@@ -17,5 +17,5 @@
     "noEmit": true,
     "types": ["@webgpu/types"]
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "global.d.ts"]
 }
