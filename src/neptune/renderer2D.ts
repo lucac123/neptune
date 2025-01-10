@@ -1,4 +1,4 @@
-import shaderCode from "bundle-text:./shaders/neptuneRender2d.wgsl";
+import shaderCode from "bundle-text:./shaders/render2d.wgsl";
 
 interface Mesh {
   getVertexBuffer(): GPUBuffer;

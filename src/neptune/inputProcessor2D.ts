@@ -52,9 +52,14 @@ export class InputProcessor2D {
 
     // If mouse has moved, set the force offset to be applied based on mouse movement
     if (this.mousePosition) {
+      const worldNewMousePosition =
+        this.camera.screenToWorldSpace(newMousePosition);
+      const worldOldMousePosition = this.camera.screenToWorldSpace(
+        this.mousePosition
+      );
       const mouseOffset: vec2 = [
-        newMousePosition[0] - this.mousePosition[0],
-        newMousePosition[1] - this.mousePosition[1],
+        worldNewMousePosition[0] - worldOldMousePosition[0],
+        worldNewMousePosition[1] - worldOldMousePosition[1],
       ];
       this.substanceCreator.setForceOffset(mouseOffset);
     }

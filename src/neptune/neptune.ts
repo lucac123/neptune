@@ -153,7 +153,8 @@ export class Neptune {
     this.renderLayer.render(
       view,
       this.meshLayer,
-      this.substanceField,
+      // this.substanceField,
+      this.velocityField,
       this.camera
     );
   }
