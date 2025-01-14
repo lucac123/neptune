@@ -11,7 +11,7 @@
     "check": "tsc",
     "doc": "typedoc --entryPointStrategy expand src/ types/",
     "format": "prettier --write html/ src/ styles/",
-    "start": "npm run init && parcel html/*.html"
+    "start": "npm run init && parcel html/*.html --no-cache"
   },
   "author": "Luca Chackalackal",
   "license": "ISC",

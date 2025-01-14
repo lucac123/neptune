@@ -27,17 +27,16 @@ async function main(): Promise<void> {
   customElements.define("neptune-component", NeptuneComponent);
 
   const displaySize: vec2 = [window.innerWidth, window.innerHeight];
-  // const resolution2d: vec2 = [
-  //   Math.ceil(displaySize[0]) / 100,
-  //   Math.ceil(displaySize[1]) / 100,
-  // ];
+  const resolution2d: vec2 = [
+    Math.ceil(displaySize[0] / 1),
+    Math.ceil(displaySize[1] / 1),
+  ];
   const resolution3d: vec3 = [256, 256, 256];
 
   const options = {
     displaySize: displaySize,
-    // resolution2d: resolution2d,
+    resolution2d: resolution2d,
     resolution3d: resolution3d,
-    cellSize: 1,
   };
 
   const neptune = document.querySelector("neptune-component");

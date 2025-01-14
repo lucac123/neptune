@@ -11,20 +11,31 @@ struct Field2D {
     // contains the actual data, must be at least length size.x * size.y
     data: array<vec3f>,
 };
-
-struct SimulationEnvironment {
-    viscosity: f32,
-};
-
-struct UniversalParameters {
+struct Parameters {
     deltaTime: f32,
+    cellSize: f32,
+    diffuseAlpha: f32,
+    diffuseBeta: f32,
+    pressureAlpha: f32,
+    pressureBeta: f32,
 }
 
-@group(0) @binding(0) var<storage, read> fieldIn: Field2D;
-@group(0) @binding(1) var<storage, read_write> fieldOut: Field2D;
 
-@group(1) @binding(0) var<uniform> universalParams: UniversalParameters;
+/**
+ ** ASSUMES FIELDS A AND B HAVE IDENTICAL METADATA
+ */
 
+@group(0) @binding(0) var<uniform> params: Parameters;
+
+@group(1) @binding(0) var<storage, read> fieldAIn: Field2D;
+@group(1) @binding(1) var<storage, read_write> fieldAOut: Field2D;
+
+@group(2) @binding(0) var<storage, read> fieldBIn: Field2D;
+
+
+/**
+ * Advect fieldAIn by fieldBIn, writing to fieldAOut
+ */
 @compute
 @workgroup_size(16, 16)
 fn advect(
@@ -33,159 +44,251 @@ fn advect(
     let coord = global_invocation_id.xy;
 
     // Ensure active thread
-    if (coord.x < fieldIn.resolution.x && coord.y < fieldIn.resolution.y) {
-        let curIndex = localCoordToIndex(coord, fieldIn.resolution);
-        let curWorldPos = localToWorldCoord(
-            coord, 
-            fieldIn.resolution, 
-            fieldIn.start, 
-            fieldIn.size
-        );
+    if (isValidThread(coord)) {
+        let curIndex = gridToIndex(coord);
+        let curWorldPos = gridToWorldCoord(coord);
 
-        let oldWorldPos = curWorldPos - fieldIn.data[curIndex].xy * universalParams.deltaTime;
-        let oldIndex = worldCoordToIndex(
-            oldWorldPos, 
-            fieldIn.resolution,
-            fieldIn.start,
-            fieldIn.size,
-        );
+        let oldWorldPos = curWorldPos - fieldBIn.data[curIndex].xy * params.deltaTime;
+        let oldIndex = worldToIndex(oldWorldPos);
 
-        fieldOut.data[curIndex] = sampleField(oldWorldPos);
-        // fieldOut.data[curIndex] = fieldIn.data[oldIndex];
+        fieldAOut.data[curIndex] = sampleFieldA(curWorldPos);
     }
 }
 
 /**
- * Linear interpolate from old field position
+ * Diffuse velocity via viscosity, write to field A
+ * 
+ * fieldA and fieldB should both be velocity
+ * 
+ * runs a single jacobi iteration step using params.diffuseAlpha and params.diffuseBeta as parameters
  */
-fn sampleField(worldCoord: vec2f) -> vec3f {
-    let normalizedCoord = worldCoordToNormalized(worldCoord, fieldIn.start, fieldIn.size);
-    
-    let floatLocalCoord = worldCoordToLocalFloat(
-        worldCoord, 
-        fieldIn.resolution,
-        fieldIn.start,
-        fieldIn.size,
-    );
-
-    let coord00 = vec2u(floatLocalCoord);
-    let coord10 = vec2u(coord00.x+1, coord00.y);
-    let coord01 = vec2u(coord00.x, coord00.y+1);
-    let coord11 = vec2u(coord00.x+1, coord00.y+1);
-
-    let index00 = localCoordToIndex(coord00, fieldIn.resolution);
-    let index10 = localCoordToIndex(coord10, fieldIn.resolution);
-    let index01 = localCoordToIndex(coord01, fieldIn.resolution);
-    let index11 = localCoordToIndex(coord11, fieldIn.resolution);
-
-    let val00 = fieldIn.data[index00];
-    let val10 = fieldIn.data[index10];
-    let val01 = fieldIn.data[index01];
-    let val11 = fieldIn.data[index11];
-
-    let distance00 = length(vec2f(coord00) - floatLocalCoord);
-    let distance10 = length(vec2f(coord10) - floatLocalCoord);
-    let distance01 = length(vec2f(coord01) - floatLocalCoord);
-    let distance11 = length(vec2f(coord11) - floatLocalCoord);
-
-    let totalDistance = distance00 + distance10 + distance01 + distance11;
-
-    let weight00 = distance00 / totalDistance;
-    let weight10 = distance10 / totalDistance;
-    let weight01 = distance01 / totalDistance;
-    let weight11 = distance11 / totalDistance;
-
-    return weight00 * val00
-        + weight10 * val10
-        + weight01 * val01
-        + weight11 * val11;
-}
-
 @compute
 @workgroup_size(16, 16)
-fn diffuse() {
+fn diffuse(
+    @builtin(global_invocation_id) global_invocation_id: vec3<u32>,
+) {
+    let coord = global_invocation_id.xy;
 
+    // Ensure active thread
+    if (isValidThread(coord)) {
+        let curIndex = gridToIndex(coord);
+        fieldAOut.data[curIndex] = jacobi(coord, params.diffuseAlpha, params.diffuseBeta);
+    }
 }
 
+/**
+ * Compute divergence of field B, output to field A
+ */
 @compute
 @workgroup_size(16, 16)
-fn computePressure() {
+fn divergence(
+    @builtin(global_invocation_id) global_invocation_id: vec3<u32>,
+) {
+let coord = global_invocation_id.xy;
 
+    // Ensure active thread
+    if (isValidThread(coord)) {
+        let right = fieldBIn.data[gridToIndex(vec2u(vec2i(coord) + vec2i(1, 0)))].x;
+        let left = fieldBIn.data[gridToIndex(vec2u(vec2i(coord) + vec2i(-1, 0)))].x;
+        let top = fieldBIn.data[gridToIndex(vec2u(vec2i(coord) + vec2i(0, 1)))].y;
+        let bottom = fieldBIn.data[gridToIndex(vec2u(vec2i(coord) + vec2i(0, -1)))].y;
+
+        fieldAOut.data[gridToIndex(coord)] = vec3f(0.5 * ( right - left + top - bottom ) / params.cellSize, 0, 0);
+    }
 }
 
+/**
+ * Compute pressure using jacobi iteration
+ * 
+ * fieldA should be pressure, fieldB should be divergence of velocity field
+ */
 @compute
 @workgroup_size(16, 16)
-fn subtractPressureGradient() {
+fn computePressure(
+    @builtin(global_invocation_id) global_invocation_id: vec3<u32>,
+) {
+let coord = global_invocation_id.xy;
 
+    // Ensure active thread
+    if (isValidThread(coord)) {
+        let curIndex = gridToIndex(coord);
+        fieldAOut.data[curIndex] = jacobi(coord, params.pressureAlpha, params.pressureBeta);
+    }
 }
+
+/**
+ * Subtract gradient of pressure (fieldB) from velocity (fieldA)
+ * outputs to fieldA
+ */
+@compute
+@workgroup_size(16, 16)
+fn subtractPressureGradient(
+    @builtin(global_invocation_id) global_invocation_id: vec3<u32>,
+) {
+let coord = global_invocation_id.xy;
+
+    // Ensure active thread
+    if (isValidThread(coord)) {
+        let curIndex = gridToIndex(coord);
+        
+        let right = fieldBIn.data[gridToIndex(vec2u(vec2i(coord) + vec2i(1, 0)))].x;
+        let left = fieldBIn.data[gridToIndex(vec2u(vec2i(coord) + vec2i(-1, 0)))].x;
+        let top = fieldBIn.data[gridToIndex(vec2u(vec2i(coord) + vec2i(0, 1)))].x;
+        let bottom = fieldBIn.data[gridToIndex(vec2u(vec2i(coord) + vec2i(0, -1)))].x;
+
+        var pressureGradient = vec3f(right-left, top-bottom, 0);
+        pressureGradient *= 0.5 / params.cellSize;
+
+        fieldAOut.data[curIndex] = fieldAIn.data[curIndex] - pressureGradient;
+    }
+}
+
+// **** UTILITY FUNCTIONS ****
 
 /**
  * Perform single step of jacobi iteration
+ *
+ * treats fieldA as x field
+ * treats fieldB as b field
  */
 fn jacobi (
-    left: vec3f, 
-    right: vec3f, 
-    top: vec3f, 
-    bottom: vec3f, 
-    b: vec3f, 
+    gridCoord: vec2u,
     alpha: f32,
     beta: f32,
 ) -> vec3f {
-    return (left + right + bottom + top + alpha * b) / beta;
+    let offsets = array<vec2i, 4>(
+        vec2i(-1, 0),
+        vec2i(1, 0),
+        vec2i(0, -1),
+        vec2i(0, 1),
+    );
+    var neighborhood = mat4x3f();
+
+    for (var i = 0; i < 4; i++) {
+        let offset = offsets[i];
+        let neighborGridCoord = vec2u(vec2i(gridCoord) + offset);
+        neighborhood[i] = fieldAIn.data[gridToIndex(neighborGridCoord)];
+    }
+
+    let b = fieldBIn.data[gridToIndex(gridCoord)];
+    let neighborhoodSum = neighborhood * vec4f(1);
+    return (neighborhoodSum + alpha * b) / beta;
+}
+
+// **** SAMPLE INPUT FIELDS ****
+
+/**
+ * Sample field A input at world position, linearly interpolating between nearest grid cells
+ */
+fn sampleFieldA(worldCoord: vec2f) -> vec3f {
+    let gridCoordF = worldToGridCoordF(worldCoord);
+
+    if (gridCoordF.x < 0 || gridCoordF.y < 0
+        || gridCoordF.x >= f32(fieldAIn.resolution.x) || gridCoordF.y >= f32(fieldAIn.resolution.y)) {
+        return vec3f(0);
+    }
+
+    let frac = fract(gridCoordF);
+    let gridCoord = vec2u(gridCoordF);
+
+
+    var distances: vec4f = vec4f(0);
+    var values: mat4x3f = mat4x3f();
+
+    for (var i: u32 = 0; i < 2; i++) {
+        for (var j: u32 = 0; j < 2; j++) {
+            let index = 2 * i + j;
+
+            let cmp = vec2f(vec2u(i, j));
+            distances[index] = length(cmp - frac);
+
+            let curGridCoord = vec2u(gridCoord.x + i, gridCoord.y + j);
+            values[index] = fieldAIn.data[gridToIndex(curGridCoord)];
+        }
+    }
+
+    return values * normalize(distances);
 }
 
 /**
- * Get index into field from coord and resolution
+ * Sample field B input at world position, linearly interpolating between nearest grid cells
  */
-fn localCoordToIndex(coord: vec2u, resolution: vec2u) -> u32 {
-    return coord.x * resolution.y + coord.y;
+fn sampleFieldB(worldCoord: vec2f) -> vec3f {
+    let gridCoordF = worldToGridCoordF(worldCoord);
+
+    let frac = fract(gridCoordF);
+    let gridCoord = vec2u(gridCoordF);
+
+    var distances: vec4f = vec4f(0);
+    var values: mat4x3f = mat4x3f();
+
+    for (var i: u32 = 0; i < 2; i++) {
+        for (var j: u32 = 0; j < 2; j++) {
+            let index = 2 * i + j;
+
+            let cmp = vec2f(vec2u(i, j));
+            distances[index] = length(cmp - frac);
+
+            let curGridCoord = vec2u(gridCoord.x + i, gridCoord.y + j);
+            values[index] = fieldBIn.data[gridToIndex(curGridCoord)];
+        }
+    }
+
+    return values * normalize(distances);
 }
 
-fn localToNormalizedCoord(coord: vec2u, resolution: vec2u) -> vec2f {
-    return vec2f(coord) / vec2f(resolution);
+// **** CHECK THREAD VALIDITY ****
+fn isValidThread(
+    gridCoord: vec2u,
+) -> bool {
+    return !(gridCoord.x <= 0 || gridCoord.y <= 0
+        || gridCoord.x >= (fieldAIn.resolution.x - 1) || gridCoord.y >= (fieldAIn.resolution.y-1));
 }
 
-fn normalizedToLocalCoord(normalizedCoord: vec2f, resolution: vec2u) -> vec2u {
-    return vec2u(normalizedCoord * vec2f(resolution));
+// **** COORDINATE SYSTEM CONVERSION FUNCTIONS ****
+/**
+ * Convert grid coord to world coord 
+ */
+fn gridToWorldCoord(
+    gridCoord: vec2u,
+) -> vec2f {
+    let localCoord = vec2f(gridCoord) / vec2f(fieldAIn.resolution);
+    return localCoord * fieldAIn.size + fieldAIn.start;
 }
 
-fn normalizedToLocalCoordFloat(normalizedCoord: vec2f, resolution: vec2u) -> vec2f {
-    return normalizedCoord * vec2f(resolution);
+/**
+ * Convert world coord to grid coord float
+ */
+fn worldToGridCoordF(
+    worldCoord: vec2f,
+) -> vec2f {
+    let localCoord = (worldCoord - fieldAIn.start) / fieldAIn.size;
+    return localCoord * vec2f(fieldAIn.resolution);
 }
 
-fn normalizedToWorldCoord(normalizedCoord: vec2f, start: vec2f, size: vec2f) -> vec2f {
-    return normalizedCoord * size + start;
+/**
+ * Convert world coord to grid coord unsigned int
+ */
+fn worldToGridCoord(
+    worldCoord: vec2f,
+) -> vec2u {
+    return vec2u(worldToGridCoordF(worldCoord));
 }
 
-fn worldCoordToNormalized(worldCoord: vec2f, start: vec2f, size: vec2f) -> vec2f {
-    return (worldCoord - start) /size;
+/**
+ * Convert grid coord to index
+ */
+fn gridToIndex(
+    gridCoord: vec2u,
+) -> u32 {
+    return gridCoord.x * fieldAIn.resolution.y + gridCoord.y;
 }
 
-fn localToWorldCoord(coord: vec2u, resolution: vec2u, start: vec2f, size: vec2f) -> vec2f {
-    return normalizedToWorldCoord(
-        localToNormalizedCoord(coord, resolution),
-        start,
-        size,
-    );
-}
-
-fn worldCoordToLocal(coord: vec2f, resolution: vec2u, start: vec2f, size: vec2f) -> vec2u {
-    return normalizedToLocalCoord(
-        worldCoordToNormalized(coord, start, size),
-        resolution,
-    );
-}
-
-fn worldCoordToLocalFloat(coord: vec2f, resolution: vec2u, start: vec2f, size: vec2f) -> vec2f {
-    return normalizedToLocalCoordFloat(
-        worldCoordToNormalized(coord, start, size),
-        resolution,
-    );
-}
-
-fn worldCoordToIndex(coord: vec2f, resolution: vec2u, start: vec2f, size: vec2f) -> u32 {
-    return localCoordToIndex(
-        worldCoordToLocal(coord, resolution, start, size),
-        resolution,
-    );
+/**
+ * Convert world coord to index
+ */
+fn worldToIndex(
+    worldCoord: vec2f,
+) -> u32 {
+    return gridToIndex(worldToGridCoord(worldCoord));
 }

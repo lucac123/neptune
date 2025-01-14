@@ -53,16 +53,18 @@ fn vertexMain(@location(0) pos: vec2f) -> VertexOut {
 fn fragmentMain(vertexOut: VertexOut) -> @location(0) vec4f {
     let fieldValue = getFieldValue(vertexOut.worldPosition);
 
-    // if (length(fieldValue) > 0.001) {
-    //     return vec4f(1);
-    // }
-    // else {
-    //     return vec4f(0,0,0,1);
-    // }
+    var color = vec3f(0);
+    // render velocity
+    // color.r = clamp(fieldValue.x, 0, 1);
+    // color.g = clamp(fieldValue.y, 0, 1);
+    // color.b = - (clamp(fieldValue.x, -1, 0) + clamp(fieldValue.y, -1, 0));
+    // color *= 1;
+
+    // render substance
+    color = fieldValue;
 
     return vec4f(
-        // fieldValue, 
-        10*vec3f(length(fieldValue)), 
+        color, 
         1,
     );
 }

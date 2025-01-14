@@ -23,7 +23,6 @@ type NeptuneOptions = {
   displaySize: vec2;
   resolution2d?: vec2; // defaults to displaySize
   resolution3d: vec3;
-  cellSize: number;
 };
 
 export type vec2 = [number, number];
@@ -39,7 +38,7 @@ export class Controller {
   private view: View;
 
   private frameRateIntervalId: number | null = null;
-  private frameRateInterval: number = 100;
+  private frameRateInterval: number = 500;
 
   constructor(view: View, neptune: NeptuneComponent) {
     this.neptune = neptune;

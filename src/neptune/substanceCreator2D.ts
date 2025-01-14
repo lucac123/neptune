@@ -20,7 +20,7 @@ type inputUniform = {
 export class SubstanceCreator2D {
   private shouldCreate: boolean = false;
 
-  private mass: number = 1;
+  private mass: number = 100;
   private radius: number = 0.1;
   private substanceAmount: number = 1;
 
@@ -188,6 +188,7 @@ export class SubstanceCreator2D {
     this.substanceUniform.amount[2] =
       deltaTime * 0.001 * this.substanceAmount * blue;
   }
+
   private updateVelocityUniforms(deltaTime: number): void {
     if (!this.position || !this.force)
       throw new Error("Error in substance creation, improperly initialized");

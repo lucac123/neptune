@@ -20,7 +20,6 @@ type NeptuneOptions = {
   displaySize: vec2;
   resolution2d?: vec2; // defaults to displaySize
   resolution3d: vec3;
-  cellSize: number;
 };
 
 type vec2 = [number, number];
@@ -219,26 +218,34 @@ export class NeptuneComponent extends HTMLElement {
       const cameraDiagonal: vec2 = planeSize;
 
       const fieldStart: vec2 = planeStart;
-      const fieldDiagonal: vec2 = planeSize;
+      const fieldSize: vec2 = planeSize;
+      const fieldResolution: vec2 =
+        this.options.resolution2d ?? this.options.displaySize;
 
       // Create 2d neptune system
       const camera = new Camera2D(this.device, cameraStart, cameraDiagonal);
       const substanceField = new FieldManager2D(
         this.device,
         fieldStart,
-        fieldDiagonal,
-        this.options.resolution2d ?? this.options.displaySize
+        fieldSize,
+        fieldResolution
       );
       const velocityField = new FieldManager2D(
         this.device,
         fieldStart,
-        fieldDiagonal,
-        this.options.resolution2d ?? this.options.displaySize
-        // [100, 100]
+        fieldSize,
+        fieldResolution
       );
       const substanceLayer = new SubstanceCreator2D(this.device);
       const inputLayer = new InputProcessor2D(substanceLayer, camera);
-      const simulationLayer = new Simulator2D(this.device);
+      const simulationLayer = new Simulator2D(
+        this.device,
+        fieldStart,
+        fieldSize,
+        fieldResolution,
+        (device: GPUDevice, start: vec2, size: vec2, resolution: vec2) =>
+          new FieldManager2D(device, start, size, resolution)
+      );
       const meshLayer = new Mesh2D(this.device, planeStart, planeSize);
       const renderLayer = new Renderer2D(this.device, this.canvasFormat);
 

@@ -7,6 +7,7 @@ export class FieldManager2D {
 
   private renderBindGroups: GPUBindGroup[];
   private computeBindGroups: GPUBindGroup[];
+  private computeBindGroupsReadOnly: GPUBindGroup[];
 
   private fields: GPUBuffer[];
 
@@ -78,6 +79,19 @@ export class FieldManager2D {
       ],
     });
 
+    const computeBindGroupReadOnlyLayout = this.device.createBindGroupLayout({
+      label: "Field Compute Bind Group Read Only Layout",
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: {
+            type: "read-only-storage",
+          },
+        },
+      ],
+    });
+
     this.renderBindGroups = this.fields.map((field: GPUBuffer) => {
       const bindGroup: GPUBindGroup = this.device.createBindGroup({
         label: "Field Bind Group",
@@ -117,6 +131,24 @@ export class FieldManager2D {
         return bindGroup;
       }
     );
+
+    this.computeBindGroupsReadOnly = this.fields.map(
+      (field: GPUBuffer, index: number, fields: GPUBuffer[]) => {
+        const bindGroup: GPUBindGroup = this.device.createBindGroup({
+          label: "Field Bind Group",
+          layout: computeBindGroupReadOnlyLayout,
+          entries: [
+            {
+              binding: 0,
+              resource: {
+                buffer: field,
+              },
+            },
+          ],
+        });
+        return bindGroup;
+      }
+    );
   }
 
   public getRenderBindGroup(): GPUBindGroup {
@@ -127,6 +159,10 @@ export class FieldManager2D {
     return this.computeBindGroups[0];
   }
 
+  public getComputeBindGroupReadOnly(): GPUBindGroup {
+    return this.computeBindGroupsReadOnly[0];
+  }
+
   public getResolution(): vec2 {
     return this.resolution;
   }
@@ -134,6 +170,7 @@ export class FieldManager2D {
   public swap(): void {
     this.swapGroups(this.renderBindGroups);
     this.swapGroups(this.computeBindGroups);
+    this.swapGroups(this.computeBindGroupsReadOnly);
   }
 
   public release(): void {

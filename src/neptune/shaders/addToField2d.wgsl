@@ -36,24 +36,46 @@ fn addToField2d(
     let worldCoord = normalizedLocalCoord * fieldIn.size + fieldIn.start;
 
     // Ensure active thread
-    if (coord.x < fieldIn.resolution.x && coord.y < fieldIn.resolution.y) {
+    if (isValidThread(coord)) {
         var index = coordToIndex(coord);
+        if (isBoundary(coord)) {
+            fieldOut.data[index] = vec3f(0);
+        }
+        else {
+            var amt: vec3f = fieldIn.data[index];
+            var gaussian: f32 = exp(
+                -1 
+                * pow(
+                        length(worldCoord - input.position),
+                        2,
+                    )
+                * (1 / input.radius) 
+            );
+            amt += gaussian * input.amount;
+            
+            fieldOut.data[index] = amt;
+        }
 
-        var amt: vec3f = fieldIn.data[index];
-        var gaussian: f32 = exp(
-            -1 
-            * pow(
-                    length(worldCoord - input.position),
-                    2,
-                )
-            * (1 / input.radius) 
-        );
-        amt += gaussian * input.amount;
-        
-        fieldOut.data[index] = amt;
     }
 }
 
 fn coordToIndex(coord: vec2u) -> u32 {
     return coord.x * fieldIn.resolution.y + coord.y;
+}
+
+
+// **** CHECK THREAD VALIDITY ****
+fn isValidThread(
+    gridCoord: vec2u,
+) -> bool {
+    return !(gridCoord.x < 0 || gridCoord.y < 0
+        || gridCoord.x >= (fieldIn.resolution.x) || gridCoord.y >= (fieldIn.resolution.y));
+}
+
+
+fn isBoundary(
+    gridCoord: vec2u,
+) -> bool {
+    return (gridCoord.x <= 0 || gridCoord.y <= 0
+        || gridCoord.x >= (fieldIn.resolution.x - 1) || gridCoord.y >= (fieldIn.resolution.y-1));
 }

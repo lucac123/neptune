@@ -71,6 +71,7 @@ interface Renderer {
 interface FieldManager {
   getRenderBindGroup(): GPUBindGroup;
   getComputeBindGroup(): GPUBindGroup;
+  getComputeBindGroupReadOnly(): GPUBindGroup;
   getResolution(): vec2;
   swap(): void;
   release?(): void;
@@ -138,6 +139,7 @@ export class Neptune {
       this.substanceField,
       this.velocityField
     );
+
     this.simulationLayer.step(
       deltaTime,
       this.substanceField,
@@ -153,8 +155,8 @@ export class Neptune {
     this.renderLayer.render(
       view,
       this.meshLayer,
-      // this.substanceField,
-      this.velocityField,
+      this.substanceField,
+      // this.velocityField,
       this.camera
     );
   }
